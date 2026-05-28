@@ -1,5 +1,5 @@
 /* ==========================================================================
-   FY2027 予実管理システム - コアロジック & モックデータベース (app.js)
+   2026年度 予実管理システム - コアロジック & モックデータベース (app.js)
    ========================================================================== */
 
 // Mock Database containing real budget numbers from HTML format
@@ -8,7 +8,7 @@ const db = {
   previousWeek: "0525",
   confirmedMonth: 4, // Up to April (Month 4) is actuals
   
-  // 12 Months mapping (FY27: Oct 2026 to Sep 2027)
+  // 12 Months mapping (2026年度: Oct 2026 to Sep 2027)
   months: [
     { name: "2026/10", key: "Oct", isActual: true },
     { name: "2026/11", key: "Nov", isActual: true },
