@@ -1191,10 +1191,102 @@ function completeImportProcess() {
   alert("取引のインポート、マスタ自動照合、共通費按分、および未分類仕訳のマスタ新規登録がすべて正常に実行されました！\n最新の実績データおよび一人あたり粗利がダッシュボードへ反映されました。");
 }
 
-// ==========================================================================
-// 7. ビュー・画面の切り替え & コントロール
-// ==========================================================================
+// Export BU Grid data to CSV dynamically (with UTF-8 BOM to prevent Excel encoding issues)
+function exportBUGridToCSV() {
+  const weekKey = state.useWeek === "this_week" ? "actual_this_week" : "actual_last_week";
+  let csvContent = "\uFEFF"; // UTF-8 BOM
+  
+  // Header row
+  csvContent += "指標 / 部門・グループ,区分,通期,10月,11月,12月,1月,2月,3月,4月,5月,6月,7月,8月,9月\n";
+  
+  const labelMapping = {
+    volume: "流通総額",
+    revenue: "売上高",
+    gp: "売上総利益(粗利)",
+    headcount: "直雇用社員数",
+    productivity: "一人あたり粗利"
+  };
+  
+  db.businessUnits.forEach(bu => {
+    const keys = ["volume", "revenue", "gp", "headcount", "productivity"];
+    
+    // BU Header row
+    csvContent += `"${bu.name}",,, , , , , , , , , , , , \n`;
+    
+    keys.forEach(k => {
+      const metricLabel = labelMapping[k];
+      
+      const getRowData = (typeLabel, valFunc) => {
+        let row = `"${metricLabel}","${typeLabel}"`;
+        
+        // Annual Total
+        let annualVal = 0;
+        if (k === "productivity") {
+          const revSum = getMetricData(bu, "gp", weekKey).reduce((a,b) => a+b, 0);
+          const hcAvg = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
+          annualVal = hcAvg > 0 ? revSum / hcAvg : 0;
+        } else if (k === "headcount") {
+          annualVal = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
+        } else {
+          const dataSrc = typeLabel === "予算" ? getMetricData(bu, k, "budget") : getMetricData(bu, k, weekKey);
+          annualVal = dataSrc.reduce((a,b) => a+b, 0);
+        }
+        row += `,${Math.round(annualVal)}`;
+        
+        for (let m = 0; m < 12; m++) {
+          row += `,${Math.round(valFunc(m))}`;
+        }
+        return row + "\n";
+      };
+      
+      // 1. Budget
+      csvContent += getRowData("予算", (m) => {
+        if (k === "productivity") {
+          const gp = getMetricData(bu, "gp", "budget")[m];
+          const hc = getMetricData(bu, "headcount", "budget")[m];
+          return gp / (hc || 1);
+        }
+        return getMetricData(bu, k, "budget")[m];
+      });
+      
+      // 2. Actual
+      csvContent += getRowData("実績", (m) => {
+        if (k === "productivity") {
+          const gp = getMetricData(bu, "gp", weekKey)[m];
+          const hc = getMetricData(bu, "headcount", weekKey)[m];
+          return gp / (hc || 1);
+        }
+        return getMetricData(bu, k, weekKey)[m];
+      });
+      
+      // 3. Variance
+      csvContent += getRowData("差額", (m) => {
+        if (k === "productivity") {
+          const actGp = getMetricData(bu, "gp", weekKey)[m];
+          const actHc = getMetricData(bu, "headcount", weekKey)[m];
+          const act = actGp / (actHc || 1);
+          const budGp = getMetricData(bu, "gp", "budget")[m];
+          const budHc = getMetricData(bu, "headcount", "budget")[m];
+          const bud = budGp / (budHc || 1);
+          return act - bud;
+        }
+        return getMetricData(bu, k, weekKey)[m] - getMetricData(bu, k, "budget")[m];
+      });
+    });
+  });
+  
+  // Download action
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `2026年度_予実管理表_${state.useWeek === "this_week" ? "0601" : "0525"}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
+// Navigation & Screen Switcher
 function switchView(viewName) {
   state.currentView = viewName;
   
@@ -1404,7 +1496,14 @@ window.addEventListener("DOMContentLoaded", () => {
     modalForm.addEventListener("submit", handleModalSubmit);
   }
   
+  // Setup CSV Export trigger
+  const csvBtn = document.getElementById("csv-export-btn");
+  if (csvBtn) {
+    csvBtn.addEventListener("click", exportBUGridToCSV);
+  }
+  
   // Initialize Charts and Grid
   switchView("dashboard");
 });
+
 
