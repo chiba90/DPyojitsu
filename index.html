@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Plus | 次世代予実管理システム (FY2027)</title>
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="index.css">
+  <!-- FontAwesome for Premium Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Float Glass Sidebar -->
+    <aside class="sidebar">
+      <div class="logo-container">
+        <div class="logo-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <span class="logo-text">Digital Plus</span>
+      </div>
+      
+      <nav class="nav-list">
+        <a class="nav-item active" data-target="dashboard">
+          <i class="fa-solid fa-gauge-high"></i>
+          <span>ダッシュボード</span>
+        </a>
+        <a class="nav-item" data-target="bu_grid">
+          <i class="fa-solid fa-table-cells"></i>
+          <span>BU別予実表</span>
+        </a>
+        <a class="nav-item" data-target="import_sim">
+          <i class="fa-solid fa-file-import"></i>
+          <span>実績インポート</span>
+        </a>
+        <a class="nav-item" data-target="config">
+          <i class="fa-solid fa-sliders"></i>
+          <span>マスタ設定</span>
+        </a>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <p>FY2027 予実管理 v1.0.0</p>
+        <p>© Digital Plus Inc.</p>
+      </div>
+    </aside>
+
+    <!-- Main Dynamic Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Header Bar -->
+      <header class="header-bar">
+        <div class="page-title">
+          <h1 id="page-main-title">予実管理ダッシュボード</h1>
+          <p id="page-sub-title">全社の最新予実・着地ヨミ、生産性の推移を俯瞰します</p>
+        </div>
+        
+        <div class="header-controls">
+          <!-- Segment (BU) Selector -->
+          <div class="selector-wrapper" style="display: flex; align-items: center; gap: 0.5rem; margin-right: 0.5rem;">
+            <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">表示セグメント:</span>
+            <select id="bu-selector" class="dropdown-control">
+              <option value="all">全社合計 (フィンテック)</option>
+              <option value="bu_gov">BizDevG(給付金)</option>
+              <option value="bu_gift">株主優待G</option>
+              <option value="bu_pay">報酬支払G</option>
+              <option value="bu_point">ポイントG</option>
+              <option value="bu_fact">ファクタリングG</option>
+              <option value="bu_dg">デジタル＆ (来期ヨミ)</option>
+              <option value="bu_ops">オペレーションG (共通販管費)</option>
+            </select>
+          </div>
+          
+          <!-- Week over Week Snapshot Switcher -->
+          <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 600;">スナップショット比較:</span>
+          <div class="toggle-container">
+            <button class="toggle-btn active" id="toggle-this-week">今週 (06/01時点)</button>
+            <button class="toggle-btn" id="toggle-prev-week">前週 (05/25時点)</button>
+          </div>
+          
+          <button class="btn btn-secondary" id="rollforward-trigger-btn">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>月次実績の確定</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 1. DASHBOARD VIEW -->
+      <section id="section-dashboard" class="view-section active">
+        
+        <!-- KPI Card Grid -->
+        <div class="kpi-grid">
+          
+          <!-- KPI 1: 流通総額 -->
+          <div class="card kpi-card">
+            <div class="kpi-header">
+              <span>全社 流通総額 (通期)</span>
+              <div class="kpi-icon"><i class="fa-solid fa-wallet"></i></div>
+            </div>
+            <div class="kpi-value" id="kpi-vol-val">687.5 億円</div>
+            <div class="kpi-change change-up">
+              <i class="fa-solid fa-caret-up"></i>
+              <span>+3.2% (前週比)</span>
+            </div>
+          </div>
+          
+          <!-- KPI 2: 売上高 -->
+          <div class="card kpi-card">
+            <div class="kpi-header">
+              <span>全社 売上高 (通期)</span>
+              <div class="kpi-icon"><i class="fa-solid fa-coins"></i></div>
+            </div>
+            <div class="kpi-value" id="kpi-rev-val">33.5 億円</div>
+            <div class="kpi-change change-up">
+              <i class="fa-solid fa-caret-up"></i>
+              <span>+1.8% (前週比)</span>
+            </div>
+          </div>
+          
+          <!-- KPI 3: 売上総利益 -->
+          <div class="card kpi-card">
+            <div class="kpi-header">
+              <span>全社 売上総利益 (通期)</span>
+              <div class="kpi-icon"><i class="fa-solid fa-chart-pie"></i></div>
+            </div>
+            <div class="kpi-value" id="kpi-gp-val">23.8 億円</div>
+            <div class="kpi-change change-up">
+              <i class="fa-solid fa-caret-up"></i>
+              <span>+2.4% (前週比)</span>
+            </div>
+          </div>
+          
+          <!-- KPI 4: 一人あたり粗利 -->
+          <div class="card kpi-card">
+            <div class="kpi-header">
+              <span>全社一人あたり月間粗利</span>
+              <div class="kpi-icon"><i class="fa-solid fa-user-gear"></i></div>
+            </div>
+            <div class="kpi-value" id="kpi-prod-val">6.8 万円/人</div>
+            <div class="kpi-change change-up">
+              <i class="fa-solid fa-caret-up"></i>
+              <span>+0.8% (生産性向上)</span>
+            </div>
+          </div>
+          
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+          
+          <!-- Main Chart: Budget vs Actuals -->
+          <div class="card chart-card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-chart-line"></i> 月次売上高の推移 (予算 vs 最新着地)</span>
+              <span style="font-size:0.75rem;color:var(--text-secondary);">※実線:確定実績 | 点線:着地ヨミ</span>
+            </div>
+            <div id="main-chart" style="width: 100%; height: 250px;">
+              <!-- SVG chart rendered via JavaScript -->
+            </div>
+          </div>
+          
+          <!-- Secondary Chart: Productivity -->
+          <div class="card chart-card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-user-astronaut"></i> 一人あたり月間粗利の推移</span>
+            </div>
+            <div id="productivity-chart" style="width: 100%; height: 250px;">
+              <!-- SVG productivity chart rendered via JS -->
+            </div>
+          </div>
+          
+        </div>
+
+        <!-- Alert Notification Panel (Management Insights) -->
+        <div class="card" style="border-left: 4px solid var(--color-warning);">
+          <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: var(--color-warning);">
+            <i class="fa-solid fa-triangle-exclamation"></i> 経営管理インサイト（変動アラート）
+          </h3>
+          <p id="dynamic-insight-content" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.7;">
+            データ分析中...
+          </p>
+        </div>
+
+      </section>
+
+      <!-- 2. BU GRID VIEW (FY2027 FORMAT) -->
+      <section id="section-bu_grid" class="view-section">
+        
+        <div class="card">
+          <div class="chart-header">
+            <span class="chart-title"><i class="fa-solid fa-table"></i> FY2027 ビジネスユニット別 予実グリッド</span>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">
+                <span class="formula-badge">f</span> はExcelのINDIRECT数式がプログラムで自動処理されている箇所です。
+              </span>
+            </div>
+          </div>
+          
+          <div class="table-container" id="bu-grid-table-container">
+            <!-- Table dynamically populated by JavaScript -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 3. IMPORT & AUTO-ALLOCATE SIMULATION VIEW -->
+      <section id="section-import_sim" class="view-section">
+        
+        <div class="card">
+          <div class="chart-header">
+            <span class="chart-title"><i class="fa-solid fa-file-import"></i> 経理確定実績インポート ＆ 自動按分仕分けシミュレーション</span>
+          </div>
+          
+          <!-- Drag & Drop Zone Simulation -->
+          <div class="import-zone" id="import-trigger-btn">
+            <div class="import-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="import-title">経理から届いた月次実績CSVファイルをここにドラッグ＆ドロップ</div>
+            <div class="import-sub">またはクリックしてファイルを選択 (A・C・I列が完全に空欄の生データを想定)</div>
+          </div>
+          
+          <!-- Simulation Status -->
+          <h4 id="import-progress-text" style="font-size: 0.95rem; margin-bottom: 1.5rem; text-align: center; color: var(--accent-blue);">
+            ファイルをインポートすると、マスタ突合および自動配賦が実行されます。
+          </h4>
+          
+          <!-- Side-by-Side Simulation Panels -->
+          <div class="simulation-panel">
+            
+            <!-- Left: Raw Input Dump -->
+            <div class="sim-box">
+              <div class="sim-box-title">
+                <span>[生データ入力] A・C・I列が未設定の経理データ</span>
+                <i class="fa-solid fa-database"></i>
+              </div>
+              <div id="sim-raw-list">
+                <div style="color: var(--text-muted); text-align: center; margin-top: 4rem; font-size: 0.85rem;">データが読み込まれていません。</div>
+              </div>
+            </div>
+            
+            <!-- Right: System Allocation Logic -->
+            <div class="sim-box">
+              <div class="sim-box-title">
+                <span>[システム側仕分け結果] 領域判定＆共通費の自動按分</span>
+                <i class="fa-solid fa-gears"></i>
+              </div>
+              <div id="sim-process-list">
+                <div style="color: var(--text-muted); text-align: center; margin-top: 4rem; font-size: 0.85rem;">自動処理の開始を待っています。</div>
+              </div>
+            </div>
+            
+          </div>
+          
+        </div>
+
+      </section>
+
+      <!-- 4. MASTER CONFIGURATION VIEW -->
+      <section id="section-config" class="view-section">
+        
+        <div class="charts-grid">
+          
+          <!-- Left: Allocation Rules configuration -->
+          <div class="card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-percent"></i> 「その他/共通費」自動按分（配賦）比率マスタ</span>
+            </div>
+            
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+              経理生データに存在する「共通費（その他）」の行を、指定されたビジネスユニットにどのような比率で自動按分するかを定義します。
+            </p>
+            
+            <form id="alloc-rule-form" onsubmit="event.preventDefault(); alert('按分比率マスタを保存しました！次回インポート時より即座に適用されます。');">
+              <div class="form-group">
+                <label class="form-label">対象の取引先コード (生データ上のF列)</label>
+                <input type="text" class="form-control" value="300000594" placeholder="例: 300000594">
+              </div>
+              
+              <div class="form-group">
+                <label class="form-label">按分方法の指定</label>
+                <div class="toggle-container" style="margin-bottom: 0.8rem;">
+                  <button class="toggle-btn active" type="button">複数事業部への比率按分</button>
+                  <button class="toggle-btn" type="button" disabled>特定グループへの全額付け</button>
+                </div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                  <label class="form-label">事業部A (株主優待G)</label>
+                  <input type="text" class="form-control" value="50%" placeholder="50%">
+                </div>
+                <div>
+                  <label class="form-label">事業部B (オペレーションG)</label>
+                  <input type="text" class="form-control" value="50%" placeholder="50%">
+                </div>
+              </div>
+              
+              <button class="btn btn-primary" type="submit" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>按分ルールを保存</span>
+              </button>
+            </form>
+          </div>
+          
+          <!-- Right: Mapping definition overview -->
+          <div class="card">
+            <div class="chart-header">
+              <span class="chart-title"><i class="fa-solid fa-link"></i> 「取引先×科目」領域自動マッピングマスタ</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+              D列（勘定科目）とF列（取引先/案件）のペアから、管理会計用の領域グループを自動決定するルールです。
+            </p>
+            
+            <div style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; font-family: monospace;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
+                  <tr>
+                    <th style="padding: 0.4rem;">勘定科目</th>
+                    <th style="padding: 0.4rem;">取引先コード</th>
+                    <th style="padding: 0.4rem;">マッピング先領域</th>
+                  </tr>
+                </thead>
+                <tbody style="color: var(--text-primary);">
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.4rem;">5301</td>
+                    <td style="padding: 0.4rem;">100006188</td>
+                    <td style="padding: 0.4rem; color: var(--accent-blue);">BizDevG(給付金)</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.4rem;">5206</td>
+                    <td style="padding: 0.4rem;">300000550</td>
+                    <td style="padding: 0.4rem; color: var(--accent-blue);">株主優待G</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.4rem;">4113</td>
+                    <td style="padding: 0.4rem;">100001122</td>
+                    <td style="padding: 0.4rem; color: var(--accent-blue);">報酬支払G</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.4rem;">5206</td>
+                    <td style="padding: 0.4rem;">300001438</td>
+                    <td style="padding: 0.4rem; color: var(--accent-blue);">ポイントG</td>
+                  </tr>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+                    <td style="padding: 0.4rem;">6226</td>
+                    <td style="padding: 0.4rem;">300001393</td>
+                    <td style="padding: 0.4rem; color: var(--accent-blue);">ファクタリングG</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Floating Glass Tooltip for SVG Charts -->
+  <div id="chart-tooltip" class="chart-tooltip"></div>
+
+  <!-- JavaScript file -->
+  <script src="app.js"></script>
+</body>
+</html>
