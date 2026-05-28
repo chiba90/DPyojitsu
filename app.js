@@ -220,6 +220,14 @@ let state = {
   isImporting: false
 };
 
+// Helper to safely access BU metrics and handle week key fallbacks (robust design)
+function getMetricData(bu, metricKey, weekKey) {
+  const m = bu.metrics[metricKey];
+  if (!m) return Array(12).fill(0);
+  if (weekKey === "budget") return m.budget || Array(12).fill(0);
+  return m[weekKey] || m.actual_this_week || m.budget || Array(12).fill(0);
+}
+
 // Calculate all-company totals
 function calculateTotals(weekKey) {
   const monthsCount = db.months.length;
@@ -231,18 +239,27 @@ function calculateTotals(weekKey) {
   };
   
   db.businessUnits.forEach(bu => {
+    const volBud = getMetricData(bu, "volume", "budget");
+    const volAct = getMetricData(bu, "volume", weekKey);
+    const revBud = getMetricData(bu, "revenue", "budget");
+    const revAct = getMetricData(bu, "revenue", weekKey);
+    const gpBud = getMetricData(bu, "gp", "budget");
+    const gpAct = getMetricData(bu, "gp", weekKey);
+    const hcBud = getMetricData(bu, "headcount", "budget");
+    const hcAct = getMetricData(bu, "headcount", weekKey);
+    
     for (let m = 0; m < monthsCount; m++) {
-      totals.volume.budget[m] += bu.metrics.volume.budget[m] || 0;
-      totals.volume.actual[m] += bu.metrics.volume[weekKey][m] || 0;
+      totals.volume.budget[m] += volBud[m] || 0;
+      totals.volume.actual[m] += volAct[m] || 0;
       
-      totals.revenue.budget[m] += bu.metrics.revenue.budget[m] || 0;
-      totals.revenue.actual[m] += bu.metrics.revenue[weekKey][m] || 0;
+      totals.revenue.budget[m] += revBud[m] || 0;
+      totals.revenue.actual[m] += revAct[m] || 0;
       
-      totals.gp.budget[m] += bu.metrics.gp.budget[m] || 0;
-      totals.gp.actual[m] += bu.metrics.gp[weekKey][m] || 0;
+      totals.gp.budget[m] += gpBud[m] || 0;
+      totals.gp.actual[m] += gpAct[m] || 0;
       
-      totals.headcount.budget[m] += bu.metrics.headcount.budget[m] || 0;
-      totals.headcount.actual[m] += bu.metrics.headcount.actual_this_week[m] || 0; // standard headcount
+      totals.headcount.budget[m] += hcBud[m] || 0;
+      totals.headcount.actual[m] += hcAct[m] || 0;
     }
   });
   
@@ -256,12 +273,11 @@ function getFilteredTotals(weekKey) {
   }
   
   const bu = db.businessUnits.find(b => b.id === state.selectedBU);
-  const monthsCount = db.months.length;
   const totals = {
-    volume: { budget: [...bu.metrics.volume.budget], actual: [...bu.metrics.volume[weekKey]] },
-    revenue: { budget: [...bu.metrics.revenue.budget], actual: [...bu.metrics.revenue[weekKey]] },
-    gp: { budget: [...bu.metrics.gp.budget], actual: [...bu.metrics.gp[weekKey]] },
-    headcount: { budget: [...bu.metrics.headcount.budget], actual: [...bu.metrics.headcount.actual_this_week] }
+    volume: { budget: getMetricData(bu, "volume", "budget"), actual: getMetricData(bu, "volume", weekKey) },
+    revenue: { budget: getMetricData(bu, "revenue", "budget"), actual: getMetricData(bu, "revenue", weekKey) },
+    gp: { budget: getMetricData(bu, "gp", "budget"), actual: getMetricData(bu, "gp", weekKey) },
+    headcount: { budget: getMetricData(bu, "headcount", "budget"), actual: getMetricData(bu, "headcount", weekKey) }
   };
   return totals;
 }
@@ -690,8 +706,6 @@ function generateBUGrid() {
   
   const weekKey = state.useWeek === "this_week" ? "actual_this_week" : "actual_last_week";
   const prevWeekKey = "actual_last_week";
-  const totals = calculateTotals(weekKey);
-  const prevTotals = calculateTotals(prevWeekKey);
   
   let html = `
     <table class="data-table">
@@ -733,15 +747,15 @@ function generateBUGrid() {
         // Annual Total
         let annualVal = 0;
         if (k === "productivity") {
-          const revSum = bu.metrics.gp[weekKey].reduce((a,b) => a+b, 0);
-          const hcAvg = bu.metrics.headcount.actual_this_week.reduce((a,b) => a+b, 0) / 12;
+          const revSum = getMetricData(bu, "gp", weekKey).reduce((a,b) => a+b, 0);
+          const hcAvg = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
           annualVal = hcAvg > 0 ? revSum / hcAvg : 0;
         } else if (k === "headcount") {
           // Average for headcount
-          annualVal = bu.metrics.headcount.actual_this_week.reduce((a,b) => a+b, 0) / 12;
+          annualVal = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
         } else {
           // Sum
-          const dataSrc = typeLabel === "予算" ? bu.metrics[k].budget : bu.metrics[k][weekKey];
+          const dataSrc = typeLabel === "予算" ? getMetricData(bu, k, "budget") : getMetricData(bu, k, weekKey);
           annualVal = dataSrc.reduce((a,b) => a+b, 0);
         }
         
@@ -752,8 +766,8 @@ function generateBUGrid() {
           // Check if value changed compared to last week (WoW check)
           let changedClass = "";
           if (state.highlightChanges && typeLabel === "実績" && m >= db.confirmedMonth) {
-            const thisWeekVal = bu.metrics[k][weekKey][m];
-            const lastWeekVal = bu.metrics[k][prevWeekKey][m];
+            const thisWeekVal = getMetricData(bu, k, weekKey)[m];
+            const lastWeekVal = getMetricData(bu, k, prevWeekKey)[m];
             if (thisWeekVal !== lastWeekVal) {
               changedClass = "cell-highlight-changed";
             }
@@ -775,17 +789,21 @@ function generateBUGrid() {
       // 1. Budget Row
       html += renderRow("予算", "budget-cell", (m) => {
         if (k === "productivity") {
-          return bu.metrics.gp.budget[m] / (bu.metrics.headcount.budget[m] || 1);
+          const gp = getMetricData(bu, "gp", "budget")[m];
+          const hc = getMetricData(bu, "headcount", "budget")[m];
+          return gp / (hc || 1);
         }
-        return bu.metrics[k].budget[m];
+        return getMetricData(bu, k, "budget")[m];
       }, (v) => k === "headcount" ? v.toFixed(0) : Math.round(v).toLocaleString());
       
       // 2. Actual Row
       html += renderRow("実績", "actual-cell", (m) => {
         if (k === "productivity") {
-          return bu.metrics.gp[weekKey][m] / (bu.metrics.headcount.actual_this_week[m] || 1);
+          const gp = getMetricData(bu, "gp", weekKey)[m];
+          const hc = getMetricData(bu, "headcount", weekKey)[m];
+          return gp / (hc || 1);
         }
-        return bu.metrics[k][weekKey][m];
+        return getMetricData(bu, k, weekKey)[m];
       }, (v) => k === "headcount" ? v.toFixed(0) : Math.round(v).toLocaleString());
       
       // 3. Variance Row (予算 vs 実績)
@@ -797,21 +815,31 @@ function generateBUGrid() {
       };
       html += renderRow("差額", "variance-cell", (m) => {
         if (k === "productivity") {
-          const act = bu.metrics.gp[weekKey][m] / (bu.metrics.headcount.actual_this_week[m] || 1);
-          const bud = bu.metrics.gp.budget[m] / (bu.metrics.headcount.budget[m] || 1);
+          const actGp = getMetricData(bu, "gp", weekKey)[m];
+          const actHc = getMetricData(bu, "headcount", weekKey)[m];
+          const act = actGp / (actHc || 1);
+          
+          const budGp = getMetricData(bu, "gp", "budget")[m];
+          const budHc = getMetricData(bu, "headcount", "budget")[m];
+          const bud = budGp / (budHc || 1);
           return act - bud;
         }
-        return bu.metrics[k][weekKey][m] - bu.metrics[k].budget[m];
+        return getMetricData(bu, k, weekKey)[m] - getMetricData(bu, k, "budget")[m];
       }, varFormat);
       
       // 4. WoW Change Row (前週比)
       html += renderRow("前週比", "wow-cell", (m) => {
         if (k === "productivity") {
-          const actThis = bu.metrics.gp[weekKey][m] / (bu.metrics.headcount.actual_this_week[m] || 1);
-          const actLast = bu.metrics.gp[prevWeekKey][m] / (bu.metrics.headcount.actual_this_week[m] || 1);
+          const actThisGp = getMetricData(bu, "gp", weekKey)[m];
+          const actThisHc = getMetricData(bu, "headcount", weekKey)[m];
+          const actThis = actThisGp / (actThisHc || 1);
+          
+          const actLastGp = getMetricData(bu, "gp", prevWeekKey)[m];
+          const actLastHc = getMetricData(bu, "headcount", prevWeekKey)[m];
+          const actLast = actLastGp / (actLastHc || 1);
           return actThis - actLast;
         }
-        return bu.metrics[k][weekKey][m] - bu.metrics[k][prevWeekKey][m];
+        return getMetricData(bu, k, weekKey)[m] - getMetricData(bu, k, prevWeekKey)[m];
       }, varFormat);
     });
   });
