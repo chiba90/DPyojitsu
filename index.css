@@ -170,6 +170,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.2rem;
+  white-space: nowrap; /* Prevent title line break! */
 }
 
 .page-title p {
@@ -824,5 +825,22 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
+
+/* Responsive layout adjustments for large headers */
+@media (max-width: 1400px) {
+  .header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+  }
+  
+  .header-controls {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+}
+
 
 

@@ -1,214 +1,8 @@
 /* ==========================================================================
-   2026年度 予実管理システム - コアロジック & モックデータベース (app.js)
+   2026年度 予実管理システム - コアロジック & データベース連携 (app.js)
    ========================================================================== */
 
-// Mock Database containing real budget numbers from HTML format
-const db = {
-  activeWeek: "0601",
-  previousWeek: "0525",
-  confirmedMonth: 4, // Up to April (Month 4) is actuals
-  
-  // 12 Months mapping (2026年度: Oct 2026 to Sep 2027)
-  months: [
-    { name: "2026/10", key: "Oct", isActual: true },
-    { name: "2026/11", key: "Nov", isActual: true },
-    { name: "2026/12", key: "Dec", isActual: true },
-    { name: "2027/01", key: "Jan", isActual: true },
-    { name: "2027/02", key: "Feb", isActual: true },
-    { name: "2027/03", key: "Mar", isActual: true },
-    { name: "2027/04", key: "Apr", isActual: true }, // Current month
-    { name: "2027/05", key: "May", isActual: false }, // Forecast
-    { name: "2027/06", key: "Jun", isActual: false },
-    { name: "2027/07", key: "Jul", isActual: false },
-    { name: "2027/08", key: "Aug", isActual: false },
-    { name: "2027/09", key: "Sep", isActual: false }
-  ],
-  
-  businessUnits: [
-    {
-      id: "bu_gov",
-      name: "BizDevG(給付金)",
-      parent: "business_unit",
-      metrics: {
-        volume: {
-          budget: [393000, 633000, 1704000, 1393000, 1563000, 2644000, 1973000, 2193000, 4584000, 1868000, 2188000, 3864000],
-          actual_last_week: [549870.4, 993179.4, 2330140.1, 2398174.1, 1335868.9, 1281284.7, 1548348.3, 2189170.0, 3461472.3, 7855997.7, 3040564.2, 2112567.1],
-          actual_this_week: [549870.4, 993179.4, 2330140.1, 2398174.1, 1335868.9, 1281284.7, 1550350.7, 2277928.1, 4662500.4, 7257368.5, 2742391.9, 1813976.0]
-        },
-        revenue: {
-          budget: [22000, 37000, 80000, 62000, 72000, 137000, 94000, 108000, 252000, 87000, 107000, 277000],
-          actual_last_week: [65346.2, 66205.2, 32556.7, 68010.6, 57733.9, 77856.0, 54727.5, 97979.6, 71061.7, 246435.1, 143827.6, 83354.4],
-          actual_this_week: [65346.2, 66205.2, 32556.7, 68010.6, 57733.9, 77856.0, 60459.2, 97412.2, 72081.2, 246296.8, 145329.1, 83354.4]
-        },
-        gp: {
-          budget: [19600, 34300, 77000, 58800, 68500, 133200, 89800, 103600, 247100, 81900, 101500, 270500],
-          actual_last_week: [60913.3, 59107.4, 30498.0, 58385.2, 46785.9, 59982.9, 33767.9, 78011.2, 50404.3, 106022.8, 104856.9, 54587.6],
-          actual_this_week: [60913.3, 59107.4, 30498.0, 58385.2, 46785.9, 59982.9, 37740.6, 82447.4, 51423.8, 105884.4, 106358.4, 54587.6]
-        },
-        headcount: {
-          budget: [10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12],
-          actual_this_week: [10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 12, 12]
-        }
-      }
-    },
-    {
-      id: "bu_gift",
-      name: "株主優待G",
-      parent: "business_unit",
-      metrics: {
-        volume: {
-          budget: [46250, 250, 250, 250, 250, 1019164, 1019164, 1019164, 1019164, 1019164, 1019164, 1019164],
-          actual_last_week: [41781.2, 37790.4, 41934.9, 35236.8, 42106.7, 42006.3, 51504.9, 62510.0, 58000, 58000, 58000, 58000],
-          actual_this_week: [41781.2, 37790.4, 41934.9, 35236.8, 42106.7, 42006.3, 51504.9, 62429.0, 58000, 58000, 58000, 58000]
-        },
-        revenue: {
-          budget: [3529, 3123, 3123, 3123, 3123, 17289, 17289, 15172, 15172, 15172, 15172, 15172],
-          actual_last_week: [2025.5, 2507.5, 2034.0, 1546.0, 1829.4, 2224.6, 2249.5, 2249.5, 11760.0, 2249.5, 2249.5, 3189.5],
-          actual_this_week: [2025.5, 2507.5, 2034.0, 1546.0, 1829.4, 2224.6, 2063.3, 2802.3, 11760.0, 2700.0, 2700.0, 3640.0]
-        },
-        gp: {
-          budget: [2118, 1712, 1712, 1712, 1712, 10757, 10757, 9810, 10049, 10049, 10049, 10049],
-          actual_last_week: [688.8, 569.9, 497.0, 109.4, 588.9, 904.3, 650.3, 650.3, 9710.3, 650.3, 650.3, 1590.3],
-          actual_this_week: [688.8, 569.9, 497.0, 109.4, 588.9, 904.3, 510.7, 760.5, 9800.0, 740.0, 740.0, 1680.0]
-        },
-        headcount: {
-          budget: [5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 7],
-          actual_this_week: [5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6]
-        }
-      }
-    },
-    {
-      id: "bu_pay",
-      name: "報酬支払G",
-      parent: "business_unit",
-      metrics: {
-        volume: {
-          budget: [42000, 42000, 42000, 42000, 42000, 42000, 42000, 42000, 42000, 42000, 42000, 42000],
-          actual_last_week: [51456.2, 51368.5, 47806.7, 31541.7, 34578.2, 50686.6, 36891.3, 42000, 42000, 42000, 42000, 42000],
-          actual_this_week: [51456.2, 51368.5, 47806.7, 31541.7, 34578.2, 50686.6, 38705.2, 42000, 42000, 42000, 42000, 42000]
-        },
-        revenue: {
-          budget: [1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260, 1260],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 1136.7, 1136.7, 1136.7, 1136.7, 1136.7, 1136.7],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 1136.7, 1136.7, 1136.7, 1136.7, 1136.7]
-        },
-        gp: {
-          budget: [927, 927, 927, 927, 927, 927, 927, 927, 927, 927, 927, 927],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 906.7, 906.7, 906.7, 906.7, 906.7, 906.7],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 906.7, 906.7, 906.7, 906.7, 906.7]
-        },
-        headcount: {
-          budget: [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4],
-          actual_this_week: [3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4]
-        }
-      }
-    },
-    {
-      id: "bu_point",
-      name: "ポイントG",
-      parent: "business_unit",
-      metrics: {
-        volume: {
-          budget: [140000, 290000, 340000, 240000, 80000, 980000, 80000, 80000, 240000, 240000, 240000, 240000],
-          actual_last_week: [133870, 298330, 266439.0, 107470, 104356.3, 680975, 165000, 0, 160000, 160000, 0, 160000],
-          actual_this_week: [133870, 298330, 266439.0, 107470, 104356.3, 680975, 165000, 0, 160000, 160000, 0, 160000]
-        },
-        revenue: {
-          budget: [25677, 29004, 34220, 33417, 34011, 30440, 23544, 24362, 24316, 35886, 40510, 39439],
-          actual_last_week: [25196.0, 28552.8, 38073.4, 34574.5, 30107.2, 49132.4, 53135.5, 18706.1, 11105.5, 22772.6, 16002.1, 9596.6],
-          actual_this_week: [25196.0, 28552.8, 38073.4, 34574.5, 30107.2, 49132.4, 56233.0, 18706.1, 11105.5, 22772.6, 16002.1, 9596.6]
-        },
-        gp: {
-          budget: [25677, 29004, 34220, 33417, 34011, 30440, 23544, 24362, 24316, 35886, 40510, 39439],
-          actual_last_week: [25196.0, 28552.8, 38073.4, 34574.5, 30107.2, 49132.4, 53135.5, 18706.1, 11105.5, 22772.6, 16002.1, 9596.6],
-          actual_this_week: [25196.0, 28552.8, 38073.4, 34574.5, 30107.2, 49132.4, 56233.0, 18706.1, 11105.5, 22772.6, 16002.1, 9596.6]
-        },
-        headcount: {
-          budget: [4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5],
-          actual_this_week: [4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5]
-        }
-      }
-    },
-    {
-      id: "bu_fact",
-      name: "ファクタリングG",
-      parent: "business_unit",
-      metrics: {
-        volume: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        revenue: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [5.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [5.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        gp: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [5.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [5.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        headcount: {
-          budget: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-          actual_this_week: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        }
-      }
-    },
-    {
-      id: "bu_dg",
-      name: "デジタル＆",
-      parent: "business_unit",
-      metrics: {
-        volume: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        revenue: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        gp: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        headcount: {
-          budget: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-          actual_this_week: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-        }
-      }
-    },
-    {
-      id: "bu_ops",
-      name: "オペレーションG",
-      parent: "platform_unit",
-      metrics: {
-        volume: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        revenue: {
-          budget: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_last_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-          actual_this_week: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        },
-        gp: {
-          budget: [-10658, -12354, -11142, -10792, -10822, -2743, -2212, -3189, -3201, -3000, -2921, -3280],
-          actual_last_week: [-1324.3, -11882.7, -7828.4, -10616.3, -10829.0, -10128.8, -8569.7, -7571.1, -3631.5, -8552.5, -8657.5, -7817.5],
-          actual_this_week: [-1324.3, -11882.7, -7828.4, -10616.3, -10829.0, -10128.8, -8569.7, -7571.1, -3631.5, -8552.5, -8657.5, -7817.5]
-        },
-        headcount: {
-          budget: [8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9],
-          actual_this_week: [8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9]
-        }
-      }
-    }
-  ]
-};
+const db = realDB;
 
 // State Manager
 let state = {
@@ -700,6 +494,146 @@ function handleDotLeave() {
 }
 
 // Generate the beautiful BU Grid table HTML
+// Helper to dynamically get metric arrays for individual BUs or All-Company totals (with formulas)
+function getMetricArray(buId, metricKey, weekKey) {
+  const monthsCount = db.months.length;
+  
+  // Safe helper to extract raw week actuals or budgets
+  const getRawData = (id, key) => {
+    const bu = db.businessUnits.find(b => b.id === id);
+    if (!bu || !bu.metrics[key]) return Array(monthsCount).fill(0);
+    if (weekKey === "budget") return bu.metrics[key].budget || Array(monthsCount).fill(0);
+    
+    const wk = weekKey === "this_week" ? "actual_this_week" : (weekKey === "last_week" ? "actual_last_week" : weekKey);
+    return bu.metrics[key][wk] 
+           || bu.metrics[key].actual_this_week 
+           || bu.metrics[key].budget 
+           || Array(monthsCount).fill(0);
+  };
+
+  // 1. All-Company total dynamic calculations
+  if (buId === "all") {
+    // Total Volume
+    if (metricKey === "volume") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.filter(b => b.parent === "business_unit").forEach(b => {
+        const buVals = getMetricArray(b.id, "volume", weekKey);
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total Revenue
+    if (metricKey === "revenue") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.filter(b => b.parent === "business_unit").forEach(b => {
+        const buVals = getMetricArray(b.id, "revenue", weekKey);
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total Cost
+    if (metricKey === "cost") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.filter(b => b.parent === "business_unit").forEach(b => {
+        const buVals = getMetricArray(b.id, "cost", weekKey);
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total GP = Revenue - Cost
+    if (metricKey === "gp") {
+      const rev = getMetricArray("all", "revenue", weekKey);
+      const cost = getMetricArray("all", "cost", weekKey);
+      return rev.map((r, i) => r - cost[i]);
+    }
+    // Total SGA
+    if (metricKey === "sga") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.forEach(b => {
+        const buVals = getMetricArray(b.id, "sga", weekKey);
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total OP = GP - SGA
+    if (metricKey === "op") {
+      const gp = getMetricArray("all", "gp", weekKey);
+      const sga = getMetricArray("all", "sga", weekKey);
+      return gp.map((g, i) => g - sga[i]);
+    }
+    // Total Fin Rev
+    if (metricKey === "fin_rev") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.forEach(b => {
+        const buVals = getMetricArray(b.id, "fin_rev", weekKey);
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total Fin Cost
+    if (metricKey === "fin_cost") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.forEach(b => {
+        const buVals = getMetricArray(b.id, "fin_cost", weekKey);
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total Net Income = OP + Fin Rev - Fin Cost
+    if (metricKey === "net_income") {
+      const op = getMetricArray("all", "op", weekKey);
+      const finRev = getMetricArray("all", "fin_rev", weekKey);
+      const finCost = getMetricArray("all", "fin_cost", weekKey);
+      return op.map((o, i) => o + finRev[i] - finCost[i]);
+    }
+    // Total Headcount
+    if (metricKey === "headcount") {
+      const arr = Array(monthsCount).fill(0);
+      db.businessUnits.forEach(b => {
+        const buVals = getRawData(b.id, "headcount");
+        for (let i = 0; i < monthsCount; i++) arr[i] += buVals[i];
+      });
+      return arr;
+    }
+    // Total Productivity = GP / Headcount
+    if (metricKey === "productivity") {
+      const gp = getMetricArray("all", "gp", weekKey);
+      const hc = getMetricArray("all", "headcount", weekKey);
+      return gp.map((g, i) => g / (hc[i] || 1));
+    }
+  }
+
+  // 2. Individual sub-unit dynamic calculations
+  // Cost = Revenue - GP
+  if (metricKey === "cost") {
+    const rev = getRawData(buId, "revenue");
+    const gp = getRawData(buId, "gp");
+    return rev.map((r, i) => r - gp[i]);
+  }
+  // OP = GP - SGA
+  if (metricKey === "op") {
+    const gp = getRawData(buId, "gp");
+    const sga = getRawData(buId, "sga");
+    return gp.map((g, i) => g - sga[i]);
+  }
+  // Net Income = OP + Fin Rev - Fin Cost
+  if (metricKey === "net_income") {
+    const op = getMetricArray(buId, "op", weekKey);
+    const finRev = getRawData(buId, "fin_rev");
+    const finCost = getRawData(buId, "fin_cost");
+    return op.map((o, i) => o + finRev[i] - finCost[i]);
+  }
+  // Productivity = GP / Headcount
+  if (metricKey === "productivity") {
+    const gp = getRawData(buId, "gp");
+    const hc = getRawData(buId, "headcount");
+    return gp.map((g, i) => g / (hc[i] || 1));
+  }
+
+  // 3. Return raw metric array (Volume, Revenue, GP, SGA, Fin Rev, Fin Cost, Headcount)
+  return getRawData(buId, metricKey);
+}
+
 function generateBUGrid() {
   const tableContainer = document.getElementById("bu-grid-table-container");
   if (!tableContainer) return;
@@ -711,63 +645,144 @@ function generateBUGrid() {
     <table class="data-table">
       <thead>
         <tr class="header-row">
-          <th style="min-width: 150px;">指標 / 部門・グループ</th>
-          <th>区分</th>
+          <th style="min-width: 180px; position: sticky; left: 0; z-index: 20; background: rgba(15, 22, 42, 0.95);">指標 / 部門・グループ</th>
+          <th style="min-width: 80px; position: sticky; left: 180px; z-index: 20; background: rgba(15, 22, 42, 0.95);">区分</th>
           <th>通期</th>
           ${db.months.map(m => `<th>${m.name.split("/")[1]}月${m.isActual ? '<span style="font-size:0.6rem;color:var(--accent-blue);display:block;">実績</span>' : '<span style="font-size:0.6rem;color:var(--text-muted);display:block;">ヨミ</span>'}</th>`).join("")}
+          <th>1Q</th>
+          <th>2Q</th>
+          <th>3Q</th>
+          <th>4Q</th>
         </tr>
       </thead>
       <tbody>
   `;
   
-  // Render BU Blocks
-  db.businessUnits.forEach(bu => {
-    const keys = ["volume", "revenue", "gp", "headcount", "productivity"];
-    
-    // Group Header Row
+  const buItems = [
+    { id: "all", name: "全社合計" },
+    { id: "bu_gov", name: "BizDevG(給付金)" },
+    { id: "bu_gift", name: "株主優待G" },
+    { id: "bu_pay", name: "報酬支払G" },
+    { id: "bu_point", name: "ポイントG" },
+    { id: "bu_fact", name: "ファクタリングG" },
+    { id: "bu_dg", name: "デジタル＆" }
+  ];
+
+  const fullItems = [
+    { id: "all", name: "全社合計" },
+    { id: "bu_gov", name: "BizDevG(給付金)" },
+    { id: "bu_gift", name: "株主優待G" },
+    { id: "bu_pay", name: "報酬支払G" },
+    { id: "bu_point", name: "ポイントG" },
+    { id: "bu_fact", name: "ファクタリングG" },
+    { id: "bu_dg", name: "デジタル＆" },
+    { id: "bu_ops", name: "オペレーションG" },
+    { id: "bu_dg_gift", name: "デジタルギフト" },
+    { id: "bu_dg_wallet", name: "デジタルウォレット" },
+    { id: "bu_corp_hq", name: "管理本部" },
+    { id: "bu_corp_rc", name: "リスコン" },
+    { id: "bu_corp_pres", name: "社長室" }
+  ];
+
+  const categories = [
+    { name: "流通総額", key: "volume", items: buItems },
+    { name: "売上高", key: "revenue", items: buItems },
+    { name: "売上原価", key: "cost", items: buItems },
+    { name: "売上総利益", key: "gp", items: buItems },
+    { name: "販管費", key: "sga", items: fullItems },
+    { name: "営業利益", key: "op", items: fullItems },
+    { name: "金融収益", key: "fin_rev", items: fullItems },
+    { name: "金融費用", key: "fin_cost", items: fullItems },
+    { name: "税前純利益", key: "net_income", items: fullItems },
+    { name: "【参考】直雇用社員数", key: "headcount", items: fullItems },
+    { name: "【参考】一人あたり粗利", key: "productivity", items: buItems }
+  ];
+
+  categories.forEach(cat => {
+    // Header for each category
     html += `
-      <tr class="bu-header">
-        <td colspan="15">${bu.name}</td>
+      <tr class="bu-header" style="background: rgba(0, 180, 216, 0.08); border-top: 2px solid rgba(0, 180, 216, 0.25);">
+        <td colspan="19" style="font-weight: 700; color: #fff; font-size: 0.95rem; letter-spacing: 0.5px;">
+          <i class="fa-solid fa-folder-open" style="margin-right:0.5rem; color:var(--accent-blue);"></i>${cat.name}
+        </td>
       </tr>
     `;
-    
-    const labelMapping = {
-      volume: "流通総額",
-      revenue: "売上高",
-      gp: "売上総利益(粗利)",
-      headcount: "直雇用社員数",
-      productivity: "一人あたり粗利"
-    };
-    
-    keys.forEach(k => {
-      // For each metric, we render: Budget, Actual, Variance, WoW
-      const metricLabel = labelMapping[k];
+
+    cat.items.forEach(item => {
+      const isTotalRow = item.id === "all";
+      const itemRowClass = isTotalRow ? "total-row" : "";
       
       const renderRow = (typeLabel, rowClass, valFunc, formatFunc) => {
-        // Annual Total
+        // Calculate dynamic summary metrics
         let annualVal = 0;
-        if (k === "productivity") {
-          const revSum = getMetricData(bu, "gp", weekKey).reduce((a,b) => a+b, 0);
-          const hcAvg = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
-          annualVal = hcAvg > 0 ? revSum / hcAvg : 0;
-        } else if (k === "headcount") {
+        let q1Val = 0, q2Val = 0, q3Val = 0, q4Val = 0;
+
+        if (cat.key === "productivity") {
+          // Productivity = GP sum / Headcount average
+          const gpArr = typeLabel === "予算" ? getMetricArray(item.id, "gp", "budget") : getMetricArray(item.id, weekKey);
+          const hcArr = typeLabel === "予算" ? getMetricArray(item.id, "headcount", "budget") : getMetricArray(item.id, weekKey);
+          
+          const getProdForRange = (start, end) => {
+            let gpSum = 0, hcSum = 0;
+            for (let i = start; i <= end; i++) {
+              gpSum += gpArr[i];
+              hcSum += hcArr[i];
+            }
+            const hcAvg = hcSum / (end - start + 1);
+            return hcAvg > 0 ? gpSum / hcAvg : 0;
+          };
+
+          annualVal = getProdForRange(0, 11);
+          q1Val = getProdForRange(0, 2);
+          q2Val = getProdForRange(3, 5);
+          q3Val = getProdForRange(6, 8);
+          q4Val = getProdForRange(9, 11);
+        } 
+        else if (cat.key === "headcount") {
           // Average for headcount
-          annualVal = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
-        } else {
-          // Sum
-          const dataSrc = typeLabel === "予算" ? getMetricData(bu, k, "budget") : getMetricData(bu, k, weekKey);
-          annualVal = dataSrc.reduce((a,b) => a+b, 0);
+          const hcArr = typeLabel === "予算" ? getMetricArray(item.id, "headcount", "budget") : getMetricArray(item.id, weekKey);
+          
+          const getAvgForRange = (start, end) => {
+            let sum = 0;
+            for (let i = start; i <= end; i++) {
+              sum += hcArr[i];
+            }
+            return sum / (end - start + 1);
+          };
+
+          annualVal = getAvgForRange(0, 11);
+          q1Val = getAvgForRange(0, 2);
+          q2Val = getAvgForRange(3, 5);
+          q3Val = getAvgForRange(6, 8);
+          q4Val = getAvgForRange(9, 11);
+        } 
+        else {
+          // Sum for volume, revenue, gp, cost, sga, op, fin_rev, fin_cost, net_income
+          const arr = typeLabel === "予算" ? getMetricArray(item.id, cat.key, "budget") : getMetricArray(item.id, cat.key, weekKey);
+          
+          const getSumForRange = (start, end) => {
+            let sum = 0;
+            for (let i = start; i <= end; i++) {
+              sum += arr[i] || 0;
+            }
+            return sum;
+          };
+
+          annualVal = getSumForRange(0, 11);
+          q1Val = getSumForRange(0, 2);
+          q2Val = getSumForRange(3, 5);
+          q3Val = getSumForRange(6, 8);
+          q4Val = getSumForRange(9, 11);
         }
-        
+
         let monthTds = "";
         for (let m = 0; m < 12; m++) {
           const val = valFunc(m);
           
-          // Check if value changed compared to last week (WoW check)
           let changedClass = "";
           if (state.highlightChanges && typeLabel === "実績" && m >= db.confirmedMonth) {
-            const thisWeekVal = getMetricData(bu, k, weekKey)[m];
-            const lastWeekVal = getMetricData(bu, k, prevWeekKey)[m];
+            const thisWeekVal = getMetricArray(item.id, cat.key, weekKey)[m];
+            const lastWeekVal = getMetricArray(item.id, cat.key, prevWeekKey)[m];
             if (thisWeekVal !== lastWeekVal) {
               changedClass = "cell-highlight-changed";
             }
@@ -775,75 +790,85 @@ function generateBUGrid() {
           
           monthTds += `<td class="numeric ${rowClass} ${changedClass}">${formatFunc(val)}</td>`;
         }
+
+        const indentStyle = isTotalRow ? "font-weight:700; color:var(--text-primary);" : "padding-left: 2rem; color: var(--text-secondary);";
+        const totalWeight = isTotalRow ? "font-weight:700;" : "";
         
         return `
-          <tr class="metric-row">
-            <td style="padding-left: 1.5rem; color: var(--text-secondary);">${metricLabel}</td>
-            <td style="font-size: 0.75rem; color: var(--text-muted);">${typeLabel}</td>
-            <td class="numeric ${rowClass}" style="font-weight:600;">${formatFunc(annualVal)}</td>
+          <tr class="metric-row ${itemRowClass}">
+            <td style="${indentStyle}; position: sticky; left: 0; z-index: 5; background: rgba(10, 14, 26, 0.95);">${item.name}</td>
+            <td style="font-size: 0.75rem; color: var(--text-muted); position: sticky; left: 180px; z-index: 5; background: rgba(10, 14, 26, 0.95);">${typeLabel}</td>
+            <td class="numeric ${rowClass}" style="${totalWeight}">${formatFunc(annualVal)}</td>
             ${monthTds}
+            <td class="numeric ${rowClass}" style="${totalWeight}">${formatFunc(q1Val)}</td>
+            <td class="numeric ${rowClass}" style="${totalWeight}">${formatFunc(q2Val)}</td>
+            <td class="numeric ${rowClass}" style="${totalWeight}">${formatFunc(q3Val)}</td>
+            <td class="numeric ${rowClass}" style="${totalWeight}">${formatFunc(q4Val)}</td>
           </tr>
         `;
       };
+
+      const formatNormal = (v) => cat.key === "headcount" ? v.toFixed(1) : cat.key === "productivity" ? v.toFixed(1) : Math.round(v).toLocaleString();
       
-      // 1. Budget Row
-      html += renderRow("予算", "budget-cell", (m) => {
-        if (k === "productivity") {
-          const gp = getMetricData(bu, "gp", "budget")[m];
-          const hc = getMetricData(bu, "headcount", "budget")[m];
-          return gp / (hc || 1);
-        }
-        return getMetricData(bu, k, "budget")[m];
-      }, (v) => k === "headcount" ? v.toFixed(0) : Math.round(v).toLocaleString());
-      
-      // 2. Actual Row
-      html += renderRow("実績", "actual-cell", (m) => {
-        if (k === "productivity") {
-          const gp = getMetricData(bu, "gp", weekKey)[m];
-          const hc = getMetricData(bu, "headcount", weekKey)[m];
-          return gp / (hc || 1);
-        }
-        return getMetricData(bu, k, weekKey)[m];
-      }, (v) => k === "headcount" ? v.toFixed(0) : Math.round(v).toLocaleString());
-      
-      // 3. Variance Row (予算 vs 実績)
-      const varFormat = (v) => {
-        const rounded = Math.round(v);
-        if (rounded > 0) return `<span class="variance-pos">+${rounded.toLocaleString()}</span>`;
-        if (rounded < 0) return `<span class="variance-neg">${rounded.toLocaleString()}</span>`;
+      const formatVariance = (v) => {
+        const rounded = cat.key === "headcount" || cat.key === "productivity" ? v : Math.round(v);
+        if (rounded > 0.01) return `<span class="variance-pos">+${formatNormal(rounded)}</span>`;
+        if (rounded < -0.01) return `<span class="variance-neg">${formatNormal(rounded)}</span>`;
         return `0`;
       };
+
+      // 1. Budget Row
+      html += renderRow("予算", "budget-cell", (m) => {
+        if (cat.key === "productivity") {
+          const gp = getMetricArray(item.id, "gp", "budget")[m];
+          const hc = getMetricArray(item.id, "headcount", "budget")[m];
+          return gp / (hc || 1);
+        }
+        return getMetricArray(item.id, cat.key, "budget")[m];
+      }, formatNormal);
+
+      // 2. Actual Row
+      html += renderRow("実績", "actual-cell", (m) => {
+        if (cat.key === "productivity") {
+          const gp = getMetricArray(item.id, "gp", weekKey)[m];
+          const hc = getMetricArray(item.id, "headcount", weekKey)[m];
+          return gp / (hc || 1);
+        }
+        return getMetricArray(item.id, cat.key, weekKey)[m];
+      }, formatNormal);
+
+      // 3. Variance Row
       html += renderRow("差額", "variance-cell", (m) => {
-        if (k === "productivity") {
-          const actGp = getMetricData(bu, "gp", weekKey)[m];
-          const actHc = getMetricData(bu, "headcount", weekKey)[m];
+        if (cat.key === "productivity") {
+          const actGp = getMetricArray(item.id, "gp", weekKey)[m];
+          const actHc = getMetricArray(item.id, "headcount", weekKey)[m];
           const act = actGp / (actHc || 1);
           
-          const budGp = getMetricData(bu, "gp", "budget")[m];
-          const budHc = getMetricData(bu, "headcount", "budget")[m];
+          const budGp = getMetricArray(item.id, "gp", "budget")[m];
+          const budHc = getMetricArray(item.id, "headcount", "budget")[m];
           const bud = budGp / (budHc || 1);
           return act - bud;
         }
-        return getMetricData(bu, k, weekKey)[m] - getMetricData(bu, k, "budget")[m];
-      }, varFormat);
-      
-      // 4. WoW Change Row (前週比)
+        return getMetricArray(item.id, cat.key, weekKey)[m] - getMetricArray(item.id, cat.key, "budget")[m];
+      }, formatVariance);
+
+      // 4. WoW Change Row
       html += renderRow("前週比", "wow-cell", (m) => {
-        if (k === "productivity") {
-          const actThisGp = getMetricData(bu, "gp", weekKey)[m];
-          const actThisHc = getMetricData(bu, "headcount", weekKey)[m];
+        if (cat.key === "productivity") {
+          const actThisGp = getMetricArray(item.id, "gp", weekKey)[m];
+          const actThisHc = getMetricArray(item.id, "headcount", weekKey)[m];
           const actThis = actThisGp / (actThisHc || 1);
           
-          const actLastGp = getMetricData(bu, "gp", prevWeekKey)[m];
-          const actLastHc = getMetricData(bu, "headcount", prevWeekKey)[m];
+          const actLastGp = getMetricArray(item.id, "gp", prevWeekKey)[m];
+          const actLastHc = getMetricArray(item.id, "headcount", prevWeekKey)[m];
           const actLast = actLastGp / (actLastHc || 1);
           return actThis - actLast;
         }
-        return getMetricData(bu, k, weekKey)[m] - getMetricData(bu, k, prevWeekKey)[m];
-      }, varFormat);
+        return getMetricArray(item.id, cat.key, weekKey)[m] - getMetricArray(item.id, cat.key, prevWeekKey)[m];
+      }, formatVariance);
     });
   });
-  
+
   html += `
       </tbody>
     </table>
@@ -851,6 +876,7 @@ function generateBUGrid() {
   
   tableContainer.innerHTML = html;
 }
+
 
 // ==========================================================================
 // 5. 取引領域マッピングマスタ (動的CRUD & localStorage連動)
@@ -1194,83 +1220,183 @@ function completeImportProcess() {
 // Export BU Grid data to CSV dynamically (with UTF-8 BOM to prevent Excel encoding issues)
 function exportBUGridToCSV() {
   const weekKey = state.useWeek === "this_week" ? "actual_this_week" : "actual_last_week";
-  let csvContent = "\uFEFF"; // UTF-8 BOM
+  const prevWeekKey = "actual_last_week";
+  let csvContent = "\uFEFF"; // UTF-8 BOM to prevent Excel encoding issues
   
   // Header row
-  csvContent += "指標 / 部門・グループ,区分,通期,10月,11月,12月,1月,2月,3月,4月,5月,6月,7月,8月,9月\n";
+  csvContent += "指標 / 部門・グループ,区分,通期,10月,11月,12月,1月,2月,3月,4月,5月,6月,7月,8月,9月,1Q,2Q,3Q,4Q\n";
   
-  const labelMapping = {
-    volume: "流通総額",
-    revenue: "売上高",
-    gp: "売上総利益(粗利)",
-    headcount: "直雇用社員数",
-    productivity: "一人あたり粗利"
-  };
-  
-  db.businessUnits.forEach(bu => {
-    const keys = ["volume", "revenue", "gp", "headcount", "productivity"];
+  const buItems = [
+    { id: "all", name: "全社合計" },
+    { id: "bu_gov", name: "BizDevG(給付金)" },
+    { id: "bu_gift", name: "株主優待G" },
+    { id: "bu_pay", name: "報酬支払G" },
+    { id: "bu_point", name: "ポイントG" },
+    { id: "bu_fact", name: "ファクタリングG" },
+    { id: "bu_dg", name: "デジタル＆" }
+  ];
+
+  const fullItems = [
+    { id: "all", name: "全社合計" },
+    { id: "bu_gov", name: "BizDevG(給付金)" },
+    { id: "bu_gift", name: "株主優待G" },
+    { id: "bu_pay", name: "報酬支払G" },
+    { id: "bu_point", name: "ポイントG" },
+    { id: "bu_fact", name: "ファクタリングG" },
+    { id: "bu_dg", name: "デジタル＆" },
+    { id: "bu_ops", name: "オペレーションG" },
+    { id: "bu_dg_gift", name: "デジタルギフト" },
+    { id: "bu_dg_wallet", name: "デジタルウォレット" },
+    { id: "bu_corp_hq", name: "管理本部" },
+    { id: "bu_corp_rc", name: "リスコン" },
+    { id: "bu_corp_pres", name: "社長室" }
+  ];
+
+  const categories = [
+    { name: "流通総額", key: "volume", items: buItems },
+    { name: "売上高", key: "revenue", items: buItems },
+    { name: "売上原価", key: "cost", items: buItems },
+    { name: "売上総利益", key: "gp", items: buItems },
+    { name: "販管費", key: "sga", items: fullItems },
+    { name: "営業利益", key: "op", items: fullItems },
+    { name: "金融収益", key: "fin_rev", items: fullItems },
+    { name: "金融費用", key: "fin_cost", items: fullItems },
+    { name: "税前純利益", key: "net_income", items: fullItems },
+    { name: "【参考】直雇用社員数", key: "headcount", items: fullItems },
+    { name: "【参考】一人あたり粗利", key: "productivity", items: buItems }
+  ];
+
+  categories.forEach(cat => {
+    // Category Header row
+    csvContent += `"${cat.name}",,,,,,,,,,,,,,,,,,\n`;
     
-    // BU Header row
-    csvContent += `"${bu.name}",,, , , , , , , , , , , , \n`;
-    
-    keys.forEach(k => {
-      const metricLabel = labelMapping[k];
-      
-      const getRowData = (typeLabel, valFunc) => {
-        let row = `"${metricLabel}","${typeLabel}"`;
+    cat.items.forEach(item => {
+      const getRowCsv = (typeLabel, valFunc) => {
+        let row = `"${item.name}","${typeLabel}"`;
         
-        // Annual Total
+        // Calculate dynamic summary metrics for CSV
         let annualVal = 0;
-        if (k === "productivity") {
-          const revSum = getMetricData(bu, "gp", weekKey).reduce((a,b) => a+b, 0);
-          const hcAvg = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
-          annualVal = hcAvg > 0 ? revSum / hcAvg : 0;
-        } else if (k === "headcount") {
-          annualVal = getMetricData(bu, "headcount", weekKey).reduce((a,b) => a+b, 0) / 12;
-        } else {
-          const dataSrc = typeLabel === "予算" ? getMetricData(bu, k, "budget") : getMetricData(bu, k, weekKey);
-          annualVal = dataSrc.reduce((a,b) => a+b, 0);
+        let q1Val = 0, q2Val = 0, q3Val = 0, q4Val = 0;
+
+        if (cat.key === "productivity") {
+          const gpArr = typeLabel === "予算" ? getMetricArray(item.id, "gp", "budget") : getMetricArray(item.id, weekKey);
+          const hcArr = typeLabel === "予算" ? getMetricArray(item.id, "headcount", "budget") : getMetricArray(item.id, weekKey);
+          
+          const getProdForRange = (start, end) => {
+            let gpSum = 0, hcSum = 0;
+            for (let i = start; i <= end; i++) {
+              gpSum += gpArr[i];
+              hcSum += hcArr[i];
+            }
+            const hcAvg = hcSum / (end - start + 1);
+            return hcAvg > 0 ? gpSum / hcAvg : 0;
+          };
+
+          annualVal = getProdForRange(0, 11);
+          q1Val = getProdForRange(0, 2);
+          q2Val = getProdForRange(3, 5);
+          q3Val = getProdForRange(6, 8);
+          q4Val = getProdForRange(9, 11);
+        } 
+        else if (cat.key === "headcount") {
+          const hcArr = typeLabel === "予算" ? getMetricArray(item.id, "headcount", "budget") : getMetricArray(item.id, weekKey);
+          
+          const getAvgForRange = (start, end) => {
+            let sum = 0;
+            for (let i = start; i <= end; i++) {
+              sum += hcArr[i];
+            }
+            return sum / (end - start + 1);
+          };
+
+          annualVal = getAvgForRange(0, 11);
+          q1Val = getAvgForRange(0, 2);
+          q2Val = getAvgForRange(3, 5);
+          q3Val = getAvgForRange(6, 8);
+          q4Val = getAvgForRange(9, 11);
+        } 
+        else {
+          const arr = typeLabel === "予算" ? getMetricArray(item.id, cat.key, "budget") : getMetricArray(item.id, cat.key, weekKey);
+          
+          const getSumForRange = (start, end) => {
+            let sum = 0;
+            for (let i = start; i <= end; i++) {
+              sum += arr[i] || 0;
+            }
+            return sum;
+          };
+
+          annualVal = getSumForRange(0, 11);
+          q1Val = getSumForRange(0, 2);
+          q2Val = getSumForRange(3, 5);
+          q3Val = getSumForRange(6, 8);
+          q4Val = getSumForRange(9, 11);
         }
-        row += `,${Math.round(annualVal)}`;
+
+        // Add annual total
+        row += `,${cat.key === "headcount" || cat.key === "productivity" ? annualVal.toFixed(1) : Math.round(annualVal)}`;
         
+        // Add monthly columns
         for (let m = 0; m < 12; m++) {
-          row += `,${Math.round(valFunc(m))}`;
+          const val = valFunc(m);
+          row += `,${cat.key === "headcount" || cat.key === "productivity" ? val.toFixed(1) : Math.round(val)}`;
         }
+        
+        // Add quarter columns
+        row += `,${cat.key === "headcount" || cat.key === "productivity" ? q1Val.toFixed(1) : Math.round(q1Val)}`;
+        row += `,${cat.key === "headcount" || cat.key === "productivity" ? q2Val.toFixed(1) : Math.round(q2Val)}`;
+        row += `,${cat.key === "headcount" || cat.key === "productivity" ? q3Val.toFixed(1) : Math.round(q3Val)}`;
+        row += `,${cat.key === "headcount" || cat.key === "productivity" ? q4Val.toFixed(1) : Math.round(q4Val)}`;
+        
         return row + "\n";
       };
-      
-      // 1. Budget
-      csvContent += getRowData("予算", (m) => {
-        if (k === "productivity") {
-          const gp = getMetricData(bu, "gp", "budget")[m];
-          const hc = getMetricData(bu, "headcount", "budget")[m];
+
+      // 1. Budget Row
+      csvContent += getRowCsv("予算", (m) => {
+        if (cat.key === "productivity") {
+          const gp = getMetricArray(item.id, "gp", "budget")[m];
+          const hc = getMetricArray(item.id, "headcount", "budget")[m];
           return gp / (hc || 1);
         }
-        return getMetricData(bu, k, "budget")[m];
+        return getMetricArray(item.id, cat.key, "budget")[m];
       });
-      
-      // 2. Actual
-      csvContent += getRowData("実績", (m) => {
-        if (k === "productivity") {
-          const gp = getMetricData(bu, "gp", weekKey)[m];
-          const hc = getMetricData(bu, "headcount", weekKey)[m];
+
+      // 2. Actual Row
+      csvContent += getRowCsv("実績", (m) => {
+        if (cat.key === "productivity") {
+          const gp = getMetricArray(item.id, "gp", weekKey)[m];
+          const hc = getMetricArray(item.id, "headcount", weekKey)[m];
           return gp / (hc || 1);
         }
-        return getMetricData(bu, k, weekKey)[m];
+        return getMetricArray(item.id, cat.key, weekKey)[m];
       });
-      
-      // 3. Variance
-      csvContent += getRowData("差額", (m) => {
-        if (k === "productivity") {
-          const actGp = getMetricData(bu, "gp", weekKey)[m];
-          const actHc = getMetricData(bu, "headcount", weekKey)[m];
+
+      // 3. Variance Row
+      csvContent += getRowCsv("差額", (m) => {
+        if (cat.key === "productivity") {
+          const actGp = getMetricArray(item.id, "gp", weekKey)[m];
+          const actHc = getMetricArray(item.id, "headcount", weekKey)[m];
           const act = actGp / (actHc || 1);
-          const budGp = getMetricData(bu, "gp", "budget")[m];
-          const budHc = getMetricData(bu, "headcount", "budget")[m];
+          const budGp = getMetricArray(item.id, "gp", "budget")[m];
+          const budHc = getMetricArray(item.id, "headcount", "budget")[m];
           const bud = budGp / (budHc || 1);
           return act - bud;
         }
-        return getMetricData(bu, k, weekKey)[m] - getMetricData(bu, k, "budget")[m];
+        return getMetricArray(item.id, cat.key, weekKey)[m] - getMetricArray(item.id, cat.key, "budget")[m];
+      });
+
+      // 4. WoW Change Row
+      csvContent += getRowCsv("前週比", (m) => {
+        if (cat.key === "productivity") {
+          const actThisGp = getMetricArray(item.id, "gp", weekKey)[m];
+          const actThisHc = getMetricArray(item.id, "headcount", weekKey)[m];
+          const actThis = actThisGp / (actThisHc || 1);
+          const actLastGp = getMetricArray(item.id, "gp", prevWeekKey)[m];
+          const actLastHc = getMetricArray(item.id, "headcount", prevWeekKey)[m];
+          const actLast = actLastGp / (actLastHc || 1);
+          return actThis - actLast;
+        }
+        return getMetricArray(item.id, cat.key, weekKey)[m] - getMetricArray(item.id, cat.key, prevWeekKey)[m];
       });
     });
   });
