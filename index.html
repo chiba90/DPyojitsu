@@ -310,41 +310,51 @@
               D列（勘定科目）とF列（取引先/案件）のペアから、管理会計用の領域グループを自動決定するルールです。
             </p>
             
-            <div style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; font-family: monospace;">
-              <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary);">
+            <!-- Dynamic Rule Addition Inline Form (Glassmorphism design) -->
+            <div class="inline-form-card">
+              <h4 style="font-size: 0.8rem; color: var(--text-primary); margin-bottom: 0.5rem;"><i class="fa-solid fa-plus-circle"></i> 新規マッピングルールの追加</h4>
+              <form id="new-mapping-form" style="display: grid; grid-template-columns: 1fr 1.2fr 1.5fr 1.5fr auto; gap: 0.4rem; align-items: end;">
+                <div>
+                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">勘定科目</label>
+                  <input type="text" id="new-rule-account" class="form-control" placeholder="例: 5301" required style="padding: 0.4rem 0.5rem; font-size: 0.75rem;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">取引先コード</label>
+                  <input type="text" id="new-rule-partner" class="form-control" placeholder="例: 100006188" required style="padding: 0.4rem 0.5rem; font-size: 0.75rem;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">摘要・取引先名</label>
+                  <input type="text" id="new-rule-name" class="form-control" placeholder="例: サーバー費" required style="padding: 0.4rem 0.5rem; font-size: 0.75rem;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">マッピング先領域</label>
+                  <select id="new-rule-bu" class="dropdown-control" style="width: 100%; padding: 0.35rem 1.5rem 0.35rem 0.5rem; font-size: 0.75rem; background-position: right 0.4rem center;">
+                    <option value="bu_gov">BizDevG(給付金)</option>
+                    <option value="bu_gift">株主優待G</option>
+                    <option value="bu_pay">報酬支払G</option>
+                    <option value="bu_point">ポイントG</option>
+                    <option value="bu_fact">ファクタリングG</option>
+                    <option value="bu_dg">デジタル＆</option>
+                    <option value="bu_ops">オペレーションG</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" type="submit" style="padding: 0.45rem; justify-content: center; width: 32px; height: 28px;"><i class="fa-solid fa-plus"></i></button>
+              </form>
+            </div>
+            
+            <div style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; font-family: monospace; border: 1px solid var(--border-color); border-radius: 8px;">
+              <table style="width: 100%; border-collapse: collapse; text-align: left;" id="mapping-master-table">
+                <thead style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); background: rgba(255,255,255,0.02); position: sticky; top: 0; z-index: 10;">
                   <tr>
-                    <th style="padding: 0.4rem;">勘定科目</th>
-                    <th style="padding: 0.4rem;">取引先コード</th>
-                    <th style="padding: 0.4rem;">マッピング先領域</th>
+                    <th style="padding: 0.5rem 0.75rem;">科目</th>
+                    <th style="padding: 0.5rem 0.75rem;">取引先コード</th>
+                    <th style="padding: 0.5rem 0.75rem;">摘要・取引先名</th>
+                    <th style="padding: 0.5rem 0.75rem;">マッピング先領域</th>
+                    <th style="padding: 0.5rem 0.75rem; text-align: center; width: 50px;">操作</th>
                   </tr>
                 </thead>
-                <tbody style="color: var(--text-primary);">
-                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 0.4rem;">5301</td>
-                    <td style="padding: 0.4rem;">100006188</td>
-                    <td style="padding: 0.4rem; color: var(--accent-blue);">BizDevG(給付金)</td>
-                  </tr>
-                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 0.4rem;">5206</td>
-                    <td style="padding: 0.4rem;">300000550</td>
-                    <td style="padding: 0.4rem; color: var(--accent-blue);">株主優待G</td>
-                  </tr>
-                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 0.4rem;">4113</td>
-                    <td style="padding: 0.4rem;">100001122</td>
-                    <td style="padding: 0.4rem; color: var(--accent-blue);">報酬支払G</td>
-                  </tr>
-                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 0.4rem;">5206</td>
-                    <td style="padding: 0.4rem;">300001438</td>
-                    <td style="padding: 0.4rem; color: var(--accent-blue);">ポイントG</td>
-                  </tr>
-                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-                    <td style="padding: 0.4rem;">6226</td>
-                    <td style="padding: 0.4rem;">300001393</td>
-                    <td style="padding: 0.4rem; color: var(--accent-blue);">ファクタリングG</td>
-                  </tr>
+                <tbody style="color: var(--text-primary);" id="mapping-master-tbody">
+                  <!-- Dynamically populated by JS -->
                 </tbody>
               </table>
             </div>
@@ -360,6 +370,50 @@
 
   <!-- Floating Glass Tooltip for SVG Charts -->
   <div id="chart-tooltip" class="chart-tooltip"></div>
+
+  <!-- Floating Glass Modal for Instant Allocation / Master Addition -->
+  <div id="mapping-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" style="display:flex; align-items:center; gap:0.5rem; color:var(--color-warning);">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>未分類取引の領域割り当て</span>
+        </div>
+        <span class="modal-close" id="modal-close-btn">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6;">
+          現在マスタに登録されていない仕訳が検出されました。この「取引先コード」と「勘定科目」のペアに対し、管理会計上のグループ領域を定義します。登録されたルールは即座にマスタに保存され、今回の仕分け結果へ自動反映されます。
+        </p>
+        
+        <div class="modal-info-box">
+          <div><span style="color:var(--text-muted);">取引内容:</span> <strong id="modal-tx-name">-</strong></div>
+          <div><span style="color:var(--text-muted);">金額:</span> <strong id="modal-tx-value">-</strong></div>
+          <div><span style="color:var(--text-muted);">取引先コード:</span> <strong id="modal-tx-partner">-</strong></div>
+          <div><span style="color:var(--text-muted);">勘定科目:</span> <strong id="modal-tx-account">-</strong></div>
+        </div>
+        
+        <form id="modal-mapping-form">
+          <div class="form-group">
+            <label class="form-label" style="font-size:0.8rem;">マッピング先領域グループを選択</label>
+            <select id="modal-bu-select" class="dropdown-control" style="width: 100%; padding: 0.65rem 1rem;">
+              <option value="bu_gov">BizDevG(給付金)</option>
+              <option value="bu_gift">株主優待G</option>
+              <option value="bu_pay">報酬支払G</option>
+              <option value="bu_point">ポイントG</option>
+              <option value="bu_fact">ファクタリングG</option>
+              <option value="bu_dg">デジタル＆</option>
+              <option value="bu_ops">オペレーションG (共通販管費)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit" style="width: 100%; justify-content: center; margin-top: 1rem; padding: 0.75rem;">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>マスタに追加登録して適用</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- JavaScript file -->
   <script src="app.js"></script>

@@ -852,7 +852,120 @@ function generateBUGrid() {
   tableContainer.innerHTML = html;
 }
 
-// Import & Auto-Allocation Simulation Logic
+// ==========================================================================
+// 5. 取引領域マッピングマスタ (動的CRUD & localStorage連動)
+// ==========================================================================
+
+const DEFAULT_MAPPING_RULES = [
+  { id: "rule_1", account: "5301", partnerCode: "100006188", partnerName: "サーバー費(給付金)", targetBU: "bu_gov" },
+  { id: "rule_2", account: "5206", partnerCode: "300000550", partnerName: "優待カード配送費", targetBU: "bu_gift" },
+  { id: "rule_3", account: "4113", partnerCode: "100001122", partnerName: "報酬支払手数料", targetBU: "bu_pay" },
+  { id: "rule_4", account: "5206", partnerCode: "300001438", partnerName: "ポイント追加手数料", targetBU: "bu_point" },
+  { id: "rule_5", account: "6226", partnerCode: "300001393", partnerName: "ファクタリング回収費", targetBU: "bu_fact" },
+  { id: "rule_6", account: "6226", partnerCode: "300001450", partnerName: "デジタル広告宣伝費", targetBU: "bu_dg" },
+  { id: "rule_7", account: "4110", partnerCode: "100007519", partnerName: "管掌人件費", targetBU: "bu_ops" }
+];
+
+function loadMappingRules() {
+  const local = localStorage.getItem("dp_mapping_rules");
+  if (local) {
+    return JSON.parse(local);
+  }
+  localStorage.setItem("dp_mapping_rules", JSON.stringify(DEFAULT_MAPPING_RULES));
+  return DEFAULT_MAPPING_RULES;
+}
+
+function saveMappingRules(rules) {
+  localStorage.setItem("dp_mapping_rules", JSON.stringify(rules));
+}
+
+function renderMappingMaster() {
+  const tbody = document.getElementById("mapping-master-tbody");
+  if (!tbody) return;
+  
+  const rules = loadMappingRules();
+  tbody.innerHTML = "";
+  
+  const buNameMap = {
+    "bu_gov": "BizDevG(給付金)",
+    "bu_gift": "株主優待G",
+    "bu_pay": "報酬支払G",
+    "bu_point": "ポイントG",
+    "bu_fact": "ファクタリングG",
+    "bu_dg": "デジタル＆",
+    "bu_ops": "オペレーションG"
+  };
+  
+  rules.forEach(rule => {
+    const buName = buNameMap[rule.targetBU] || rule.targetBU;
+    tbody.innerHTML += `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+        <td style="padding: 0.5rem 0.75rem;">${rule.account}</td>
+        <td style="padding: 0.5rem 0.75rem;">${rule.partnerCode}</td>
+        <td style="padding: 0.5rem 0.75rem; color: var(--text-secondary);">${rule.partnerName}</td>
+        <td style="padding: 0.5rem 0.75rem; color: var(--accent-blue); font-weight: 500;">${buName}</td>
+        <td style="padding: 0.5rem 0.75rem; text-align: center;">
+          <button class="btn-delete-row" data-id="${rule.id}"><i class="fa-solid fa-trash-can"></i></button>
+        </td>
+      </tr>
+    `;
+  });
+  
+  // Bind delete events
+  tbody.querySelectorAll(".btn-delete-row").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-id");
+      deleteMappingRule(id);
+    });
+  });
+}
+
+function addMappingRule(account, partnerCode, partnerName, targetBU) {
+  const rules = loadMappingRules();
+  // Check if exists
+  const exists = rules.some(r => r.account === account && r.partnerCode === partnerCode);
+  if (exists) {
+    alert("この【勘定科目×取引先コード】のルールは既に登録されています！");
+    return false;
+  }
+  
+  const newRule = {
+    id: "rule_" + Date.now(),
+    account: account,
+    partnerCode: partnerCode,
+    partnerName: partnerName,
+    targetBU: targetBU
+  };
+  rules.push(newRule);
+  saveMappingRules(rules);
+  renderMappingMaster();
+  return true;
+}
+
+function deleteMappingRule(id) {
+  let rules = loadMappingRules();
+  rules = rules.filter(r => r.id !== id);
+  saveMappingRules(rules);
+  renderMappingMaster();
+}
+
+// ==========================================================================
+// 6. 実績インポート ＆ 自動按分仕分けシミュレーション
+// ==========================================================================
+
+const MOCK_RAW_TRANSACTIONS = [
+  { row: 120, name: "デジタルプラス広告経費", partnerCode: "300001450", account: "6226", value: 50000 },
+  { row: 121, name: "給付金サーバー構築費用", partnerCode: "100006188", account: "5301", value: 140023 },
+  { row: 122, name: "ファクタリング回収手数料", partnerCode: "300001393", account: "6226", value: 23174 },
+  { row: 123, name: "株主優待販促費(共通分)", partnerCode: "300000594", account: "5206", value: 300000 }, // Needs 50:50 allocation split!
+  { row: 124, name: "ドマネポイント追加手数料", partnerCode: "300001438", account: "5206", value: 4789 },
+  { row: 125, name: "オペレーションG共通人件費", partnerCode: "100007519", account: "4110", value: 1320000 },
+  { row: 126, name: "未分類の新規システム発注費", partnerCode: "999999999", account: "5301", value: 450000 } // Unallocated rule alert!
+];
+
+let unallocatedTransactions = [];
+let activeAllocationRow = null;
+
 function startImportSimulation() {
   if (state.isImporting) return;
   
@@ -868,55 +981,220 @@ function startImportSimulation() {
   rawList.innerHTML = "";
   processList.innerHTML = "";
   
-  // Fill Raw Database Dump with A, C, I columns EMPTY
-  const rawMockData = [
-    { row: 120, name: "デジタルプラス広告経費", bu_code: "300001450", account: "6226", value: "50,000" },
-    { row: 121, name: "給付金サーバー構築費用", bu_code: "100006188", account: "5301", value: "140,023" },
-    { row: 122, name: "ファクタリング回収手数料", bu_code: "300001393", account: "6226", value: "23,174" },
-    { row: 123, name: "株主優待販促費(共通分)", bu_code: "300000594", account: "5206", value: "300,000" }, // This needs 5:5 Allocation!
-    { row: 124, name: "ドマネポイント追加手数料", bu_code: "300001438", account: "5206", value: "4,789" },
-    { row: 125, name: "オペレーションG共通人件費", bu_code: "100007519", account: "4110", value: "1,320,000" }
-  ];
-  
-  rawMockData.forEach(item => {
-    rawList.innerHTML += `<div class="sim-item">Row ${item.row} : BU=${item.bu_code} | ACC=${item.account} | A=[ ] | C=[ ] | I=[ ] | V=${item.value}</div>`;
+  // Show raw inputs (A, C, I columns empty)
+  MOCK_RAW_TRANSACTIONS.forEach(item => {
+    rawList.innerHTML += `
+      <div class="sim-item">
+        <span>Row ${item.row} : ${item.name}</span>
+        <span style="color: var(--text-muted);">Partner:${item.partnerCode} | Acc:${item.account} | Val: ¥${item.value.toLocaleString()}</span>
+      </div>
+    `;
   });
   
-  // Tick Progress Interval
+  const rules = loadMappingRules();
+  
   const interval = setInterval(() => {
     state.importProgress += 20;
-    progressText.innerText = `インポート進捗: ${state.importProgress}%`;
+    progressText.innerText = `自動仕分け処理中: ${state.importProgress}%`;
     
     if (state.importProgress === 20) {
-      processList.innerHTML += `<div class="sim-item processed">マスタと結合中... 100006188 ➔ 給付金G 判定完了</div>`;
-    } else if (state.importProgress === 40) {
-      processList.innerHTML += `<div class="sim-item processed">マスタと結合中... 300001393 ➔ ファクタリングG 判定完了</div>`;
-    } else if (state.importProgress === 60) {
-      processList.innerHTML += `<div class="sim-item processed" style="border-left-color: var(--color-warning);">按分チェック: Row 123 共通優待販促 ➔ 5:5按分定義を検出！</div>`;
-    } else if (state.importProgress === 80) {
-      processList.innerHTML += `<div class="sim-item allocated">自動按分実行: Row 123-1 [株主優待G] ➔ 150,000</div>`;
-      processList.innerHTML += `<div class="sim-item allocated">自動按分実行: Row 123-2 [オペレーションG] ➔ 150,000</div>`;
-    } else if (state.importProgress === 100) {
+      processList.innerHTML += `<div class="sim-item processed">取引先マスタデータベースの結合スキャンを開始しました...</div>`;
+    } 
+    else if (state.importProgress === 40) {
+      // Direct Allocated items
+      MOCK_RAW_TRANSACTIONS.forEach(tx => {
+        if (tx.partnerCode === "300000594") return; // split
+        
+        const match = rules.find(r => r.account === tx.account && r.partnerCode === tx.partnerCode);
+        if (match) {
+          const buNameMap = { "bu_gov":"給付金G", "bu_gift":"優待G", "bu_pay":"報酬支払G", "bu_point":"ポイントG", "bu_fact":"ファクタG", "bu_dg":"デジタル＆", "bu_ops":"オペG" };
+          processList.innerHTML += `
+            <div class="sim-item processed badge-allocated" style="margin-bottom:0.25rem;">
+              <span>Row ${tx.row} 自動判定 ➔ ${buNameMap[match.targetBU]}</span>
+              <span>¥${tx.value.toLocaleString()}</span>
+            </div>
+          `;
+        }
+      });
+    } 
+    else if (state.importProgress === 60) {
+      // Allocation Splits (e.g. Row 123)
+      const splitTx = MOCK_RAW_TRANSACTIONS.find(tx => tx.partnerCode === "300000594");
+      if (splitTx) {
+        processList.innerHTML += `
+          <div class="sim-item processed badge-split" style="margin-bottom:0.25rem;">
+            <span>Row ${splitTx.row} 共通費 ➔ [株主優待G 50% / オペレーションG 50%] 自動配賦定義を適用</span>
+            <span>¥${splitTx.value.toLocaleString()}</span>
+          </div>
+        `;
+        processList.innerHTML += `<div class="sim-item allocated" style="margin-left:1.5rem; border-left-color:var(--accent-purple); font-size:0.75rem;">➔ [株主優待G] へ ¥${(splitTx.value * 0.5).toLocaleString()} 自動配賦</div>`;
+        processList.innerHTML += `<div class="sim-item allocated" style="margin-left:1.5rem; border-left-color:var(--accent-purple); font-size:0.75rem;">➔ [オペレーションG] へ ¥${(splitTx.value * 0.5).toLocaleString()} 自動配賦</div>`;
+      }
+    } 
+    else if (state.importProgress === 80) {
+      // Find unallocated transactions (errors/missing)
+      unallocatedTransactions = [];
+      MOCK_RAW_TRANSACTIONS.forEach(tx => {
+        if (tx.partnerCode === "300000594") return; // split
+        
+        const match = rules.find(r => r.account === tx.account && r.partnerCode === tx.partnerCode);
+        if (!match) {
+          unallocatedTransactions.push(tx);
+          processList.innerHTML += `
+            <div class="sim-item processed badge-unallocated" style="margin-bottom:0.25rem; align-items:center;" id="unallocated-row-${tx.row}">
+              <span style="display:flex; flex-direction:column; text-align:left;">
+                <strong>Row ${tx.row} 未分類アラート! [マスタ未登録]</strong>
+                <span style="font-size:0.7rem; color:rgba(255,255,255,0.6);">Code: ${tx.partnerCode} | Acc: ${tx.account} (${tx.name})</span>
+              </span>
+              <button class="btn-action-sm" onclick="openInstantAllocationModal(${tx.row})">
+                <i class="fa-solid fa-link"></i> 領域を割り振る
+              </button>
+            </div>
+          `;
+        }
+      });
+      
+      if (unallocatedTransactions.length === 0) {
+        processList.innerHTML += `<div class="sim-item processed badge-allocated" style="font-weight:600; justify-content:center;">すべての仕分け対象取引がマスタに適合しました！</div>`;
+      } else {
+        processList.innerHTML += `<div class="sim-item processed badge-unallocated" style="font-weight:600; justify-content:center;">警告: 未登録の取引が ${unallocatedTransactions.length} 件検出されました。画面から割り振ってください。</div>`;
+      }
+    } 
+    else if (state.importProgress === 100) {
       clearInterval(interval);
       state.isImporting = false;
-      progressText.innerText = "仕分け処理・按分完了！ (マスターシートに自動マージされました)";
       if (btn) btn.disabled = false;
       
-      // Update DB simulated numbers (May numbers slightly change to show integration!)
-      db.businessUnits[1].metrics.volume.actual_this_week[7] += 150; // Add 150k
-      
-      // Re-draw
-      drawDashboardChart();
-      drawProductivityChart();
-      generateBUGrid();
-      
-      // Success alert
-      alert("経理確定実績データのインポート、マスタ突合、および「その他/共通費」の自動按分処理がノーエラーで終了しました！\nマスターシートの予実および一人あたり粗利がリアルタイムに更新されました。");
+      if (unallocatedTransactions.length > 0) {
+        progressText.innerHTML = `<span style="color:var(--color-warning);"><i class="fa-solid fa-triangle-exclamation"></i> 未分類取引の解決をお待ちしています（領域を割り振ってください）</span>`;
+      } else {
+        completeImportProcess();
+      }
     }
-  }, 1000);
+  }, 800);
 }
 
-// Navigation & Screen Switcher
+function openInstantAllocationModal(row) {
+  const tx = MOCK_RAW_TRANSACTIONS.find(t => t.row === row);
+  if (!tx) return;
+  
+  activeAllocationRow = row;
+  
+  document.getElementById("modal-tx-name").innerText = tx.name;
+  document.getElementById("modal-tx-partner").innerText = tx.partnerCode;
+  document.getElementById("modal-tx-account").innerText = tx.account;
+  document.getElementById("modal-tx-value").innerText = "¥" + tx.value.toLocaleString();
+  
+  document.getElementById("mapping-modal").classList.add("active");
+}
+
+// Bind to window to allow HTML inline onclick execution
+window.openInstantAllocationModal = openInstantAllocationModal;
+
+function closeAllocationModal() {
+  document.getElementById("mapping-modal").classList.remove("active");
+  activeAllocationRow = null;
+}
+
+function handleModalSubmit(e) {
+  e.preventDefault();
+  if (!activeAllocationRow) return;
+  
+  const select = document.getElementById("modal-bu-select");
+  const targetBU = select.value;
+  
+  const tx = MOCK_RAW_TRANSACTIONS.find(t => t.row === activeAllocationRow);
+  if (tx) {
+    // Add to mapping rules database
+    const success = addMappingRule(tx.account, tx.partnerCode, tx.name, targetBU);
+    if (success) {
+      // Remove from unallocated list
+      unallocatedTransactions = unallocatedTransactions.filter(t => t.row !== activeAllocationRow);
+      
+      // Update UI in simulation log
+      const logItem = document.getElementById(`unallocated-row-${tx.row}`);
+      if (logItem) {
+        const buNameMap = { "bu_gov":"給付金G", "bu_gift":"優待G", "bu_pay":"報酬支払G", "bu_point":"ポイントG", "bu_fact":"ファクタG", "bu_dg":"デジタル＆", "bu_ops":"オペG" };
+        logItem.className = "sim-item processed badge-allocated";
+        logItem.innerHTML = `
+          <span>Row ${tx.row} 手動定義完了 ➔ ${buNameMap[targetBU]} [マスタへ追加]</span>
+          <span>¥${tx.value.toLocaleString()}</span>
+        `;
+      }
+      
+      closeAllocationModal();
+      
+      // Check if all unallocated transactions have been solved
+      const progressText = document.getElementById("import-progress-text");
+      if (unallocatedTransactions.length === 0) {
+        const processList = document.getElementById("sim-process-list");
+        processList.innerHTML += `<div class="sim-item processed badge-allocated" style="font-weight:600; justify-content:center; margin-top:0.5rem;">未分類取引がすべて解消されました！</div>`;
+        completeImportProcess();
+      } else if (progressText) {
+        progressText.innerHTML = `<span style="color:var(--color-warning);"><i class="fa-solid fa-triangle-exclamation"></i> あと ${unallocatedTransactions.length} 件の未分類取引の割り当てが必要です</span>`;
+      }
+    }
+  }
+}
+
+function completeImportProcess() {
+  const progressText = document.getElementById("import-progress-text");
+  if (progressText) {
+    progressText.innerText = "すべての取引の仕分け・自動按分がノーエラーで完了しました！";
+  }
+  
+  // Real dynamic integration to active databases:
+  // Convert yen back to Thousands of Yen and add to month 4 (April) actuals
+  // 1. Digital & Advertising (Row 120) -> 50,000 Yen = 50.0 Thousand Yen
+  db.businessUnits[5].metrics.volume.actual_this_week[4] += 50.0;
+  
+  // 2. BizDevG Servers (Row 121) -> 140,023 Yen = 140.0 Thousand Yen
+  db.businessUnits[0].metrics.volume.actual_this_week[4] += 140.0;
+  
+  // 3. Factoring Fee (Row 122) -> 23,174 Yen = 23.2 Thousand Yen
+  db.businessUnits[4].metrics.volume.actual_this_week[4] += 23.2;
+  
+  // 4. Split Shared 優待 (Row 123) -> 300,000 split 50:50 = 150,000 Yen = 150.0 Thousand Yen each
+  db.businessUnits[1].metrics.volume.actual_this_week[4] += 150.0; // Gift volume
+  db.businessUnits[6].metrics.gp.actual_this_week[4] -= 150.0;     // Ops G cost (reduces GP)
+  
+  // 5. Point Fee (Row 124) -> 4,789 Yen = 4.8 Thousand Yen
+  db.businessUnits[3].metrics.volume.actual_this_week[4] += 4.8;
+  
+  // 6. Ops Human cost (Row 125) -> 1,320,000 Yen = 1320.0 Thousand Yen
+  db.businessUnits[6].metrics.gp.actual_this_week[4] -= 1320.0;    // Ops G cost
+  
+  // 7. Newly mapped system cost (Row 126) -> 450,000 Yen = 450.0 Thousand Yen
+  // Find which BU was chosen
+  const rules = loadMappingRules();
+  const tx126Rule = rules.find(r => r.account === "5301" && r.partnerCode === "999999999");
+  if (tx126Rule) {
+    const targetBUObj = db.businessUnits.find(b => b.id === tx126Rule.targetBU);
+    if (targetBUObj) {
+      if (tx126Rule.targetBU === "bu_ops") {
+        targetBUObj.metrics.gp.actual_this_week[4] -= 450.0; // reduces GP
+      } else {
+        targetBUObj.metrics.volume.actual_this_week[4] += 450.0; // adds volume
+      }
+    }
+  }
+  
+  // Refresh live views & charts!
+  drawDashboardChart();
+  drawProductivityChart();
+  updateKPICards();
+  generateDynamicInsights();
+  if (state.currentView === "bu_grid") {
+    generateBUGrid();
+  }
+  
+  alert("取引のインポート、マスタ自動照合、共通費按分、および未分類仕訳のマスタ新規登録がすべて正常に実行されました！\n最新の実績データおよび一人あたり粗利がダッシュボードへ反映されました。");
+}
+
+// ==========================================================================
+// 7. ビュー・画面の切り替え & コントロール
+// ==========================================================================
+
 function switchView(viewName) {
   state.currentView = viewName;
   
@@ -944,6 +1222,8 @@ function switchView(viewName) {
     generateDynamicInsights();
   } else if (viewName === "bu_grid") {
     generateBUGrid();
+  } else if (viewName === "config") {
+    renderMappingMaster();
   }
 }
 
@@ -1042,7 +1322,7 @@ function setupWoWToggle() {
 window.addEventListener("DOMContentLoaded", () => {
   // Navigation Links Click
   document.querySelectorAll(".nav-item").forEach(item => {
-    item.addEventListener("click", (e) => {
+    item.addEventListener("click", () => {
       const target = item.getAttribute("data-target");
       switchView(target);
     });
@@ -1095,6 +1375,36 @@ window.addEventListener("DOMContentLoaded", () => {
     importBtn.addEventListener("click", startImportSimulation);
   }
   
+  // Setup Dynamic Master CRUD submission
+  const newMappingForm = document.getElementById("new-mapping-form");
+  if (newMappingForm) {
+    newMappingForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const account = document.getElementById("new-rule-account").value.trim();
+      const partnerCode = document.getElementById("new-rule-partner").value.trim();
+      const partnerName = document.getElementById("new-rule-name").value.trim();
+      const targetBU = document.getElementById("new-rule-bu").value;
+      
+      const success = addMappingRule(account, partnerCode, partnerName, targetBU);
+      if (success) {
+        newMappingForm.reset();
+        alert("新規マッピングルールをマスタデータベースに正常追加しました！");
+      }
+    });
+  }
+  
+  // Setup Modal bindings
+  const modalClose = document.getElementById("modal-close-btn");
+  if (modalClose) {
+    modalClose.addEventListener("click", closeAllocationModal);
+  }
+  
+  const modalForm = document.getElementById("modal-mapping-form");
+  if (modalForm) {
+    modalForm.addEventListener("submit", handleModalSubmit);
+  }
+  
   // Initialize Charts and Grid
   switchView("dashboard");
 });
+

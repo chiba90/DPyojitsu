@@ -745,3 +745,84 @@ body {
   width: 0;
 }
 
+/* Dynamic CRUD & Import alert elements */
+.inline-form-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.inline-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr 1.5fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.btn-delete-row {
+  background: transparent;
+  border: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-delete-row:hover {
+  background: rgba(239, 68, 68, 0.15);
+  transform: scale(1.1);
+}
+
+.badge-unallocated {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: var(--color-danger) !important;
+  border-left-color: var(--color-danger) !important;
+}
+
+.badge-allocated {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: var(--color-success) !important;
+  border-left-color: var(--color-success) !important;
+}
+
+.badge-split {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: var(--accent-purple) !important;
+  border-left-color: var(--accent-purple) !important;
+}
+
+.btn-action-sm {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-action-sm:hover {
+  background: #0096c7;
+  transform: translateY(-1px);
+}
+
+.modal-info-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.8rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+
