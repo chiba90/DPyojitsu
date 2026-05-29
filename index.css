@@ -704,6 +704,12 @@ body {
   background-size: 0.9em;
 }
 
+.dropdown-control option {
+  background-color: #0f162a !important; /* Premium dark background for options */
+  color: #f8f9fa !important;            /* High visibility white text */
+  padding: 0.5rem;
+}
+
 .dropdown-control:hover {
   background-color: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.2);
