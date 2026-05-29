@@ -4,6 +4,91 @@
 
 const db = realDB;
 
+// Dynamic Group Migration & 16 Period-Start Groups Initialization Engine
+(function() {
+  const buIdMap = {
+    "bu_gov": "group_bizdev",
+    "bu_gift": "group_gift",
+    "bu_pay": "group_pay",
+    "bu_point": "group_point",
+    "bu_fact": "group_fact",
+    "bu_dg": "group_dg",
+    "bu_ops": "group_ops",
+    "bu_dg_gift": "group_dg_gift",
+    "bu_dg_wallet": "group_dg_wallet",
+    "bu_corp_hq": "group_corp_hq",
+    "bu_corp_rc": "group_corp_rc",
+    "bu_corp_pres": "group_corp_pres"
+  };
+  
+  const buNameMap = {
+    "group_ops": "オペレーション",
+    "group_prod": "プロダクト",
+    "group_sys": "システム",
+    "group_bizdev": "BizDev",
+    "group_gift": "株主優待",
+    "group_pay": "報酬支払",
+    "group_point": "ポイント",
+    "group_fact": "ファクタリング",
+    "group_dg": "デジタル＆",
+    "group_corp_hq": "管理本部",
+    "group_corp_rc": "リスコン",
+    "group_legal": "法務",
+    "group_security": "セキュリティ",
+    "group_planning": "経営企画",
+    "group_hr": "HR",
+    "group_secretary": "秘書",
+    "group_dg_gift": "デジタルギフト",
+    "group_dg_wallet": "デジタルウォレット",
+    "group_corp_pres": "社長室"
+  };
+
+  // Convert old IDs to new 16 period-start IDs in memory
+  if (db && db.businessUnits) {
+    db.businessUnits.forEach(bu => {
+      if (buIdMap[bu.id]) {
+        bu.id = buIdMap[bu.id];
+      }
+      if (buNameMap[bu.id]) {
+        bu.name = buNameMap[bu.id];
+      }
+    });
+
+    // Automatically create 7 newly added period-start groups with 0 budgets if not present
+    const newGroups = [
+      { id: "group_prod", parent: "business_unit" },
+      { id: "group_sys", parent: "business_unit" },
+      { id: "group_legal", parent: "corporate_unit" },
+      { id: "group_security", parent: "corporate_unit" },
+      { id: "group_planning", parent: "corporate_unit" },
+      { id: "group_hr", parent: "corporate_unit" },
+      { id: "group_secretary", parent: "corporate_unit" }
+    ];
+
+    newGroups.forEach(g => {
+      const exists = db.businessUnits.some(bu => bu.id === g.id);
+      if (!exists) {
+        const monthsCount = db.months ? db.months.length : 12;
+        const emptyMetrics = {};
+        const keys = ["volume", "revenue", "cost", "gp", "sga", "op", "fin_rev", "fin_cost", "net_income", "headcount", "productivity"];
+        keys.forEach(k => {
+          emptyMetrics[k] = {
+            budget: Array(monthsCount).fill(0),
+            actual_last_week: Array(monthsCount).fill(0),
+            actual_this_week: Array(monthsCount).fill(0)
+          };
+        });
+        db.businessUnits.push({
+          id: g.id,
+          name: buNameMap[g.id],
+          parent: g.parent,
+          metrics: emptyMetrics
+        });
+      }
+    });
+  }
+})();
+
 // State Manager
 let state = {
   currentView: "dashboard", // dashboard, bu_grid, import_sim, config
@@ -660,28 +745,37 @@ function generateBUGrid() {
   
   const buItems = [
     { id: "all", name: "全社合計" },
-    { id: "bu_gov", name: "BizDevG(給付金)" },
-    { id: "bu_gift", name: "株主優待G" },
-    { id: "bu_pay", name: "報酬支払G" },
-    { id: "bu_point", name: "ポイントG" },
-    { id: "bu_fact", name: "ファクタリングG" },
-    { id: "bu_dg", name: "デジタル＆" }
+    { id: "group_bizdev", name: "BizDev" },
+    { id: "group_gift", name: "株主優待" },
+    { id: "group_pay", name: "報酬支払" },
+    { id: "group_point", name: "ポイント" },
+    { id: "group_fact", name: "ファクタリング" },
+    { id: "group_dg", name: "デジタル＆" },
+    { id: "group_prod", name: "プロダクト" },
+    { id: "group_sys", name: "システム" }
   ];
 
   const fullItems = [
     { id: "all", name: "全社合計" },
-    { id: "bu_gov", name: "BizDevG(給付金)" },
-    { id: "bu_gift", name: "株主優待G" },
-    { id: "bu_pay", name: "報酬支払G" },
-    { id: "bu_point", name: "ポイントG" },
-    { id: "bu_fact", name: "ファクタリングG" },
-    { id: "bu_dg", name: "デジタル＆" },
-    { id: "bu_ops", name: "オペレーションG" },
-    { id: "bu_dg_gift", name: "デジタルギフト" },
-    { id: "bu_dg_wallet", name: "デジタルウォレット" },
-    { id: "bu_corp_hq", name: "管理本部" },
-    { id: "bu_corp_rc", name: "リスコン" },
-    { id: "bu_corp_pres", name: "社長室" }
+    { id: "group_bizdev", name: "BizDev" },
+    { id: "group_gift", name: "株主優待" },
+    { id: "group_pay", name: "報酬支払" },
+    { id: "group_point", name: "ポイント" },
+    { id: "group_fact", name: "ファクタリング" },
+    { id: "group_dg", name: "デジタル＆" },
+    { id: "group_prod", name: "プロダクト" },
+    { id: "group_sys", name: "システム" },
+    { id: "group_ops", name: "オペレーション" },
+    { id: "group_dg_gift", name: "デジタルギフト" },
+    { id: "group_dg_wallet", name: "デジタルウォレット" },
+    { id: "group_corp_hq", name: "管理本部" },
+    { id: "group_corp_rc", name: "リスコン" },
+    { id: "group_legal", name: "法務" },
+    { id: "group_security", name: "セキュリティ" },
+    { id: "group_planning", name: "経営企画" },
+    { id: "group_hr", name: "HR" },
+    { id: "group_secretary", name: "秘書" },
+    { id: "group_corp_pres", name: "社長室" }
   ];
 
   const categories = [
@@ -883,19 +977,24 @@ function generateBUGrid() {
 // ==========================================================================
 
 const DEFAULT_MAPPING_RULES = [
-  { id: "rule_1", account: "5301", partnerCode: "100006188", partnerName: "サーバー費(給付金)", targetBU: "bu_gov" },
-  { id: "rule_2", account: "5206", partnerCode: "300000550", partnerName: "優待カード配送費", targetBU: "bu_gift" },
-  { id: "rule_3", account: "4113", partnerCode: "100001122", partnerName: "報酬支払手数料", targetBU: "bu_pay" },
-  { id: "rule_4", account: "5206", partnerCode: "300001438", partnerName: "ポイント追加手数料", targetBU: "bu_point" },
-  { id: "rule_5", account: "6226", partnerCode: "300001393", partnerName: "ファクタリング回収費", targetBU: "bu_fact" },
-  { id: "rule_6", account: "6226", partnerCode: "300001450", partnerName: "デジタル広告宣伝費", targetBU: "bu_dg" },
-  { id: "rule_7", account: "4110", partnerCode: "100007519", partnerName: "管掌人件費", targetBU: "bu_ops" }
+  { id: "rule_1", account: "5301", partnerCode: "100006188", partnerName: "サーバー費(給付金)", targetBU: "group_bizdev" },
+  { id: "rule_2", account: "5206", partnerCode: "300000550", partnerName: "優待カード配送費", targetBU: "group_gift" },
+  { id: "rule_3", account: "4113", partnerCode: "100001122", partnerName: "報酬支払手数料", targetBU: "group_pay" },
+  { id: "rule_4", account: "5206", partnerCode: "300001438", partnerName: "ポイント追加手数料", targetBU: "group_point" },
+  { id: "rule_5", account: "6226", partnerCode: "300001393", partnerName: "ファクタリング回収費", targetBU: "group_fact" },
+  { id: "rule_6", account: "6226", partnerCode: "300001450", partnerName: "デジタル広告宣伝費", targetBU: "group_dg" },
+  { id: "rule_7", account: "4110", partnerCode: "100007519", partnerName: "管掌人件費", targetBU: "group_ops" }
 ];
 
 function loadMappingRules() {
   const local = localStorage.getItem("dp_mapping_rules");
   if (local) {
-    return JSON.parse(local);
+    const rules = JSON.parse(local);
+    // Self-healing upgrade: if any rule contains old bu_ prefix targetBU, reset to default rules
+    const hasOldRules = rules.some(r => r.targetBU && r.targetBU.startsWith("bu_"));
+    if (!hasOldRules) {
+      return rules;
+    }
   }
   localStorage.setItem("dp_mapping_rules", JSON.stringify(DEFAULT_MAPPING_RULES));
   return DEFAULT_MAPPING_RULES;
@@ -913,13 +1012,22 @@ function renderMappingMaster() {
   tbody.innerHTML = "";
   
   const buNameMap = {
-    "bu_gov": "BizDevG(給付金)",
-    "bu_gift": "株主優待G",
-    "bu_pay": "報酬支払G",
-    "bu_point": "ポイントG",
-    "bu_fact": "ファクタリングG",
-    "bu_dg": "デジタル＆",
-    "bu_ops": "オペレーションG"
+    "group_ops": "オペレーション",
+    "group_prod": "プロダクト",
+    "group_sys": "システム",
+    "group_bizdev": "BizDev",
+    "group_gift": "株主優待",
+    "group_pay": "報酬支払",
+    "group_point": "ポイント",
+    "group_fact": "ファクタリング",
+    "group_dg": "デジタル＆",
+    "group_corp_hq": "管理本部",
+    "group_corp_rc": "リスコン",
+    "group_legal": "法務",
+    "group_security": "セキュリティ",
+    "group_planning": "経営企画",
+    "group_hr": "HR",
+    "group_secretary": "秘書"
   };
   
   rules.forEach(rule => {
@@ -1033,7 +1141,24 @@ function startImportSimulation() {
         
         const match = rules.find(r => r.account === tx.account && r.partnerCode === tx.partnerCode);
         if (match) {
-          const buNameMap = { "bu_gov":"給付金G", "bu_gift":"優待G", "bu_pay":"報酬支払G", "bu_point":"ポイントG", "bu_fact":"ファクタG", "bu_dg":"デジタル＆", "bu_ops":"オペG" };
+          const buNameMap = {
+            "group_ops": "オペレーション",
+            "group_prod": "プロダクト",
+            "group_sys": "システム",
+            "group_bizdev": "BizDev",
+            "group_gift": "株主優待",
+            "group_pay": "報酬支払",
+            "group_point": "ポイント",
+            "group_fact": "ファクタリング",
+            "group_dg": "デジタル＆",
+            "group_corp_hq": "管理本部",
+            "group_corp_rc": "リスコン",
+            "group_legal": "法務",
+            "group_security": "セキュリティ",
+            "group_planning": "経営企画",
+            "group_hr": "HR",
+            "group_secretary": "秘書"
+          };
           processList.innerHTML += `
             <div class="sim-item processed badge-allocated" style="margin-bottom:0.25rem;">
               <span>Row ${tx.row} 自動判定 ➔ ${buNameMap[match.targetBU]}</span>
@@ -1140,7 +1265,24 @@ function handleModalSubmit(e) {
       // Update UI in simulation log
       const logItem = document.getElementById(`unallocated-row-${tx.row}`);
       if (logItem) {
-        const buNameMap = { "bu_gov":"給付金G", "bu_gift":"優待G", "bu_pay":"報酬支払G", "bu_point":"ポイントG", "bu_fact":"ファクタG", "bu_dg":"デジタル＆", "bu_ops":"オペG" };
+        const buNameMap = {
+          "group_ops": "オペレーション",
+          "group_prod": "プロダクト",
+          "group_sys": "システム",
+          "group_bizdev": "BizDev",
+          "group_gift": "株主優待",
+          "group_pay": "報酬支払",
+          "group_point": "ポイント",
+          "group_fact": "ファクタリング",
+          "group_dg": "デジタル＆",
+          "group_corp_hq": "管理本部",
+          "group_corp_rc": "リスコン",
+          "group_legal": "法務",
+          "group_security": "セキュリティ",
+          "group_planning": "経営企画",
+          "group_hr": "HR",
+          "group_secretary": "秘書"
+        };
         logItem.className = "sim-item processed badge-allocated";
         logItem.innerHTML = `
           <span>Row ${tx.row} 手動定義完了 ➔ ${buNameMap[targetBU]} [マスタへ追加]</span>
@@ -1169,26 +1311,34 @@ function completeImportProcess() {
     progressText.innerText = "すべての取引の仕分け・自動按分がノーエラーで完了しました！";
   }
   
+  // Safe helper to dynamically search BU by ID and add/subtract values (robust engineering)
+  const addValue = (buId, key, val) => {
+    const bu = db.businessUnits.find(b => b.id === buId);
+    if (bu && bu.metrics[key] && bu.metrics[key].actual_this_week) {
+      bu.metrics[key].actual_this_week[4] += val;
+    }
+  };
+  
   // Real dynamic integration to active databases:
   // Convert yen back to Thousands of Yen and add to month 4 (April) actuals
   // 1. Digital & Advertising (Row 120) -> 50,000 Yen = 50.0 Thousand Yen
-  db.businessUnits[5].metrics.volume.actual_this_week[4] += 50.0;
+  addValue("group_dg", "volume", 50.0);
   
   // 2. BizDevG Servers (Row 121) -> 140,023 Yen = 140.0 Thousand Yen
-  db.businessUnits[0].metrics.volume.actual_this_week[4] += 140.0;
+  addValue("group_bizdev", "volume", 140.0);
   
   // 3. Factoring Fee (Row 122) -> 23,174 Yen = 23.2 Thousand Yen
-  db.businessUnits[4].metrics.volume.actual_this_week[4] += 23.2;
+  addValue("group_fact", "volume", 23.2);
   
   // 4. Split Shared 優待 (Row 123) -> 300,000 split 50:50 = 150,000 Yen = 150.0 Thousand Yen each
-  db.businessUnits[1].metrics.volume.actual_this_week[4] += 150.0; // Gift volume
-  db.businessUnits[6].metrics.gp.actual_this_week[4] -= 150.0;     // Ops G cost (reduces GP)
+  addValue("group_gift", "volume", 150.0); // Gift volume
+  addValue("group_ops", "gp", -150.0);     // Ops G cost (reduces GP)
   
   // 5. Point Fee (Row 124) -> 4,789 Yen = 4.8 Thousand Yen
-  db.businessUnits[3].metrics.volume.actual_this_week[4] += 4.8;
+  addValue("group_point", "volume", 4.8);
   
   // 6. Ops Human cost (Row 125) -> 1,320,000 Yen = 1320.0 Thousand Yen
-  db.businessUnits[6].metrics.gp.actual_this_week[4] -= 1320.0;    // Ops G cost
+  addValue("group_ops", "gp", -1320.0);    // Ops G cost
   
   // 7. Newly mapped system cost (Row 126) -> 450,000 Yen = 450.0 Thousand Yen
   // Find which BU was chosen
