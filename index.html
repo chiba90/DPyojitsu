@@ -346,26 +346,42 @@
             <!-- Dynamic Rule Addition Inline Form -->
             <div class="inline-form-card">
               <h4 style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 0.8rem;"><i class="fa-solid fa-plus-circle" style="color:var(--accent-blue);"></i> 新規振替ルールの追加</h4>
-              <form id="new-mapping-form" style="display: grid; grid-template-columns: 1fr 1.2fr 2fr 1.5fr auto; gap: 0.6rem; align-items: end;">
+              <form id="new-mapping-form" style="display: grid; grid-template-columns: 0.8fr 1.2fr 0.8fr 1fr 1.3fr 1.5fr 1.2fr auto; gap: 0.5rem; align-items: end;">
                 <div>
-                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">勘定科目</label>
-                  <input type="text" id="new-rule-account" class="form-control" placeholder="例: 5301" required style="padding: 0.5rem; font-size: 0.8rem;">
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">区分</label>
+                  <select id="new-rule-category" class="dropdown-control" style="width: 100%; padding: 0.45rem 1.8rem 0.45rem 0.5rem; font-size: 0.8rem; height: 35px; background-position: right 0.4rem center;">
+                    <option value="売上高">売上高</option>
+                    <option value="売上原価">売上原価</option>
+                    <option value="販管費">販管費</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">勘定科目名</label>
+                  <input type="text" id="new-rule-account-name" class="form-control" placeholder="例: 失効益売上" required style="padding: 0.5rem; font-size: 0.8rem; height: 35px;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">コード</label>
+                  <input type="text" id="new-rule-account" class="form-control" placeholder="例: 4109" required style="padding: 0.5rem; font-size: 0.8rem; height: 35px;">
                 </div>
                 <div>
                   <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">取引先コード</label>
-                  <input type="text" id="new-rule-partner" class="form-control" placeholder="例: 100006188" required style="padding: 0.5rem; font-size: 0.8rem;">
+                  <input type="text" id="new-rule-partner" class="form-control" placeholder="例: 100001158" required style="padding: 0.5rem; font-size: 0.8rem; height: 35px;">
                 </div>
                 <div>
-                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">摘要・取引先名</label>
-                  <input type="text" id="new-rule-name" class="form-control" placeholder="例: サーバー費" required style="padding: 0.5rem; font-size: 0.8rem;">
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">取引先名</label>
+                  <input type="text" id="new-rule-partner-name" class="form-control" placeholder="例: アコム株式会社" required style="padding: 0.5rem; font-size: 0.8rem; height: 35px;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">取引概要 (摘要)</label>
+                  <input type="text" id="new-rule-description" class="form-control" placeholder="例: アコム株式会社 失効益 2026/03" required style="padding: 0.5rem; font-size: 0.8rem; height: 35px;">
                 </div>
                 <div>
                   <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">振替先グループ</label>
-                  <select id="new-rule-bu" class="dropdown-control" style="width: 100%; padding: 0.45rem 2rem 0.45rem 0.65rem; font-size: 0.8rem; height: 35px;">
+                  <select id="new-rule-bu" class="dropdown-control" style="width: 100%; padding: 0.45rem 1.8rem 0.45rem 0.5rem; font-size: 0.8rem; height: 35px; background-position: right 0.4rem center;">
                     <!-- Dynamically populated -->
                   </select>
                 </div>
-                <button class="btn btn-primary" type="submit" style="padding: 0.5rem 1rem; justify-content: center; height: 35px;"><i class="fa-solid fa-plus"></i></button>
+                <button class="btn btn-primary" type="submit" style="padding: 0.5rem; justify-content: center; height: 35px; width: 100%;"><i class="fa-solid fa-plus"></i></button>
               </form>
             </div>
             
@@ -373,11 +389,13 @@
               <table style="width: 100%; border-collapse: collapse; text-align: left;" id="mapping-master-table">
                 <thead style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); background: rgba(255,255,255,0.02); position: sticky; top: 0; z-index: 10;">
                   <tr>
-                    <th style="padding: 0.6rem 0.85rem;">科目</th>
-                    <th style="padding: 0.6rem 0.85rem;">取引先コード</th>
-                    <th style="padding: 0.6rem 0.85rem;">摘要・取引先名</th>
-                    <th style="padding: 0.6rem 0.85rem;">振替先グループ</th>
-                    <th style="padding: 0.6rem 0.85rem; text-align: center; width: 80px;">操作</th>
+                    <th style="padding: 0.6rem 0.85rem; width: 80px; text-align: center;">区分</th>
+                    <th style="padding: 0.6rem 0.85rem; width: 160px;">勘定科目</th>
+                    <th style="padding: 0.6rem 0.85rem; width: 100px; text-align: center;">取引先コード</th>
+                    <th style="padding: 0.6rem 0.85rem; width: 180px;">取引先名</th>
+                    <th style="padding: 0.6rem 0.85rem; width: 220px;">概要</th>
+                    <th style="padding: 0.6rem 0.85rem; width: 130px;">振替先グループ</th>
+                    <th style="padding: 0.6rem 0.85rem; text-align: center; width: 60px;">操作</th>
                   </tr>
                 </thead>
                 <tbody style="color: var(--text-primary);" id="mapping-master-tbody">

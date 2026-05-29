@@ -801,6 +801,39 @@ body {
   border-left-color: var(--accent-purple) !important;
 }
 
+.badge-category-revenue {
+  background: rgba(0, 180, 216, 0.12) !important;
+  color: var(--accent-blue) !important;
+  border: 1px solid rgba(0, 180, 216, 0.25) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.badge-category-cost {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: var(--color-danger) !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.badge-category-sga {
+  background: rgba(168, 85, 247, 0.12) !important;
+  color: var(--accent-purple) !important;
+  border: 1px solid rgba(168, 85, 247, 0.25) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
 .btn-action-sm {
   font-size: 0.75rem;
   padding: 4px 8px;

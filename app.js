@@ -1134,37 +1134,37 @@ function generateBUGrid() {
 // ==========================================================================
 
 const DEFAULT_MAPPING_RULES = [
-  { id: "rule_1", account: "4109", partnerCode: "100001158", partnerName: "アコム株式会社", targetBU: "group_bizdev" },
-  { id: "rule_2", account: "4109", partnerCode: "100005228", partnerName: "gf.K株式会社(旧：KANKO)", targetBU: "group_gift" },
-  { id: "rule_3", account: "4108", partnerCode: "100002425", partnerName: "株式会社A inc", targetBU: "group_point" },
-  { id: "rule_4", account: "4109", partnerCode: "100003299", partnerName: "野村不動産ライフ＆スポーツ", targetBU: "group_fact" },
-  { id: "rule_5", account: "4109", partnerCode: "100006936", partnerName: "UTエージェント(UTコネク", targetBU: "group_dg" },
-  { id: "rule_6", account: "4109", partnerCode: "100007653", partnerName: "就活会議株式会社", targetBU: "group_bizdev" },
-  { id: "rule_7", account: "4109", partnerCode: "100004443", partnerName: "株式会社リーディングマーク", targetBU: "group_gift" },
-  { id: "rule_8", account: "4109", partnerCode: "100006935", partnerName: "UTエイム株式会社", targetBU: "group_point" },
-  { id: "rule_9", account: "4108", partnerCode: "100006936", partnerName: "UTエージェント(UTコネク", targetBU: "group_dg" },
-  { id: "rule_10", account: "4113", partnerCode: "100007029", partnerName: "エア・ウォーター・ライフソ", targetBU: "group_dg" },
-  { id: "rule_11", account: "4108", partnerCode: "100004443", partnerName: "株式会社リーディングマーク", targetBU: "group_gift" },
-  { id: "rule_12", account: "4109", partnerCode: "100003003", partnerName: "DOTZ株式会社", targetBU: "group_fact" },
-  { id: "rule_13", account: "4108", partnerCode: "100006935", partnerName: "UTエイム株式会社", targetBU: "group_point" },
-  { id: "rule_14", account: "4108", partnerCode: "100005228", partnerName: "gf.K株式会社(旧：KANKO)", targetBU: "group_gift" },
-  { id: "rule_15", account: "4108", partnerCode: "100006694", partnerName: "株式会社スマートキャンパス", targetBU: "group_point" },
-  { id: "rule_16", account: "4108", partnerCode: "100005982", partnerName: "mila合同会社", targetBU: "group_bizdev" },
-  { id: "rule_17", account: "4109", partnerCode: "100007593", partnerName: "株式会社マックスヒルズ", targetBU: "group_gift" },
-  { id: "rule_18", account: "4109", partnerCode: "100002425", partnerName: "株式会社A inc", targetBU: "group_point" },
-  { id: "rule_19", account: "4109", partnerCode: "100007592", partnerName: "株式会社MAVEL(旧株式会社", targetBU: "group_bizdev" },
-  { id: "rule_20", account: "4109", partnerCode: "100007499", partnerName: "株式会社クリア", targetBU: "group_gift" },
-  { id: "rule_21", account: "4109", partnerCode: "100001726", partnerName: "RIZAP株式会社", targetBU: "group_point" },
-  { id: "rule_22", account: "4109", partnerCode: "100005460", partnerName: "株式会社帆風", targetBU: "group_fact" },
-  { id: "rule_23", account: "4108", partnerCode: "100007652", partnerName: "株式会社デジタルコマース", targetBU: "group_dg" }
+  { id: "rule_1", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100001158", partnerName: "アコム株式会社", description: "アコム株式会社 失効益 2026/03", targetBU: "group_bizdev" },
+  { id: "rule_2", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100005228", partnerName: "gf.K株式会社(旧：KANKO)", description: "gf.K株式会社 セブン銀行期限切れ 2026/03", targetBU: "group_gift" },
+  { id: "rule_3", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100002425", partnerName: "株式会社A inc", description: "A inc. 発行認識", targetBU: "group_point" },
+  { id: "rule_4", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100003299", partnerName: "野村不動産ライフ＆スポーツ", description: "野村不動産ライフ＆スポーツ株式会社 失効益 2026/03", targetBU: "group_fact" },
+  { id: "rule_5", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100006936", partnerName: "UTエージェント(UTコネク", description: "UTエージェント株式会社 失効益 2026/03", targetBU: "group_dg" },
+  { id: "rule_6", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100007653", partnerName: "就活会議株式会社", description: "就活会議株式会社 失効益 2026/03", targetBU: "group_bizdev" },
+  { id: "rule_7", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100004443", partnerName: "株式会社リーディングマーク", description: "株式会社リーディングマーク 失効益 2026/03", targetBU: "group_gift" },
+  { id: "rule_8", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100006935", partnerName: "UTエイム株式会社", description: "UTエイム株式会社 失効益 2026/03", targetBU: "group_point" },
+  { id: "rule_9", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100006936", partnerName: "UTエージェント(UTコネク", description: "UTエージェント株式会社 【User負担】発行認識", targetBU: "group_dg" },
+  { id: "rule_10", category: "売上高", account: "4113", accountName: "運用代行売上", partnerCode: "100007029", partnerName: "エア・ウォーター・ライフソ", description: "ICK合同会社 エア・ウォーター様SNS運用代行費", targetBU: "group_dg" },
+  { id: "rule_11", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100004443", partnerName: "株式会社リーディングマーク", description: "株式会社リーディングマーク 発行認識", targetBU: "group_gift" },
+  { id: "rule_12", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100003003", partnerName: "DOTZ株式会社", description: "DOTZ株式会社 失効シェア 2025/12", targetBU: "group_fact" },
+  { id: "rule_13", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100006935", partnerName: "UTエイム株式会社", description: "UTエイム株式会社 【User負担】 発行認識", targetBU: "group_point" },
+  { id: "rule_14", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100005228", partnerName: "gf.K株式会社(旧：KANKO)", description: "gf.K株式会社 発行認識", targetBU: "group_gift" },
+  { id: "rule_15", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100006694", partnerName: "株式会社スマートキャンパス", description: "株式会社スマートキャンパス 発行認識", targetBU: "group_point" },
+  { id: "rule_16", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100005982", partnerName: "mila合同会社", description: "mila合同会社 発行認識", targetBU: "group_bizdev" },
+  { id: "rule_17", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100007593", partnerName: "株式会社マックスヒルズ", description: "株式会社マックスヒルズ 失効益 2025/11", targetBU: "group_gift" },
+  { id: "rule_18", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100002425", partnerName: "株式会社A inc", description: "A inc. セブン銀行期限切れ 2026/03", targetBU: "group_point" },
+  { id: "rule_19", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100007592", partnerName: "株式会社MAVEL(旧株式会社", description: "株式会社MAVEL 失効益 2026/03", targetBU: "group_bizdev" },
+  { id: "rule_20", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100007499", partnerName: "株式会社クリア", description: "株式会社クリア メンズクリア 失効益 2026/03", targetBU: "group_gift" },
+  { id: "rule_21", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100001726", partnerName: "RIZAP株式会社", description: "【ギフト購入アカウント】RIZAP株式会社 失効益 2026/03", targetBU: "group_point" },
+  { id: "rule_22", category: "売上高", account: "4109", accountName: "失効益売上", partnerCode: "100005460", partnerName: "株式会社帆風", description: "株式会社 帆風 失効益 2025/10", targetBU: "group_fact" },
+  { id: "rule_23", category: "売上高", account: "4108", accountName: "発行売上", partnerCode: "100007652", partnerName: "株式会社デジタルコマース", description: "株式会社デジタルコマース 発行認識", targetBU: "group_dg" }
 ];
 
 function loadMappingRules() {
   const local = localStorage.getItem("dp_mapping_rules");
   if (local) {
     const rules = JSON.parse(local);
-    // Self-healing upgrade: if any rule contains old bu_ prefix targetBU, reset to default rules
-    const hasOldRules = rules.some(r => r.targetBU && r.targetBU.startsWith("bu_"));
+    // Self-healing upgrade: if any rule contains old bu_ prefix targetBU or lacks category (old format), reset to default rules
+    const hasOldRules = rules.some(r => (r.targetBU && r.targetBU.startsWith("bu_")) || !r.category);
     if (!hasOldRules) {
       return rules;
     }
@@ -1205,13 +1205,29 @@ function renderMappingMaster() {
   
   rules.forEach(rule => {
     const buName = buNameMap[rule.targetBU] || rule.targetBU;
+    
+    // Category Badge style selection
+    let categoryBadge = "";
+    if (rule.category === "売上高") {
+      categoryBadge = `<span class="badge-category-revenue">売上高</span>`;
+    } else if (rule.category === "売上原価") {
+      categoryBadge = `<span class="badge-category-cost">売上原価</span>`;
+    } else {
+      categoryBadge = `<span class="badge-category-sga">${rule.category || "販管費"}</span>`;
+    }
+    
+    const accountDisplay = rule.accountName ? `${rule.accountName} (${rule.account})` : rule.account;
+    const descriptionDisplay = rule.description || "-";
+    
     tbody.innerHTML += `
       <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
-        <td style="padding: 0.5rem 0.75rem;">${rule.account}</td>
-        <td style="padding: 0.5rem 0.75rem;">${rule.partnerCode}</td>
-        <td style="padding: 0.5rem 0.75rem; color: var(--text-secondary);">${rule.partnerName}</td>
-        <td style="padding: 0.5rem 0.75rem; color: var(--accent-blue); font-weight: 500;">${buName}</td>
-        <td style="padding: 0.5rem 0.75rem; text-align: center;">
+        <td style="padding: 0.5rem 0.85rem; text-align: center;">${categoryBadge}</td>
+        <td style="padding: 0.5rem 0.85rem; color: var(--text-primary); font-weight: 500;">${accountDisplay}</td>
+        <td style="padding: 0.5rem 0.85rem; text-align: center; font-family: monospace; color: var(--text-muted);">${rule.partnerCode}</td>
+        <td style="padding: 0.5rem 0.85rem; color: var(--text-secondary);">${rule.partnerName}</td>
+        <td style="padding: 0.5rem 0.85rem; color: var(--text-secondary);">${descriptionDisplay}</td>
+        <td style="padding: 0.5rem 0.85rem; color: var(--accent-blue); font-weight: 600;">${buName}</td>
+        <td style="padding: 0.5rem 0.85rem; text-align: center;">
           <button class="btn-delete-row" data-id="${rule.id}"><i class="fa-solid fa-trash-can"></i></button>
         </td>
       </tr>
@@ -1227,7 +1243,7 @@ function renderMappingMaster() {
   });
 }
 
-function addMappingRule(account, partnerCode, partnerName, targetBU) {
+function addMappingRule(category, accountName, account, partnerCode, partnerName, description, targetBU) {
   const rules = loadMappingRules();
   // Check if exists
   const exists = rules.some(r => r.account === account && r.partnerCode === partnerCode);
@@ -1238,9 +1254,12 @@ function addMappingRule(account, partnerCode, partnerName, targetBU) {
   
   const newRule = {
     id: "rule_" + Date.now(),
+    category: category,
+    accountName: accountName,
     account: account,
     partnerCode: partnerCode,
     partnerName: partnerName,
+    description: description,
     targetBU: targetBU
   };
   rules.push(newRule);
@@ -1453,7 +1472,7 @@ function handleModalSubmit(e) {
   const tx = MOCK_RAW_TRANSACTIONS.find(t => t.row === activeAllocationRow);
   if (tx) {
     // Add to mapping rules database
-    const success = addMappingRule(tx.account, tx.partnerCode, tx.partnerName, targetBU);
+    const success = addMappingRule(tx.category, tx.accountName, tx.account, tx.partnerCode, tx.partnerName, tx.description, targetBU);
     if (success) {
       // Remove from unallocated list
       unallocatedTransactions = unallocatedTransactions.filter(t => t.row !== activeAllocationRow);
@@ -1911,17 +1930,22 @@ window.addEventListener("DOMContentLoaded", () => {
     importBtn.addEventListener("click", startImportSimulation);
   }
   
+
+
   // Setup Dynamic Master CRUD submission
   const newMappingForm = document.getElementById("new-mapping-form");
   if (newMappingForm) {
     newMappingForm.addEventListener("submit", (e) => {
       e.preventDefault();
+      const category = document.getElementById("new-rule-category").value;
+      const accountName = document.getElementById("new-rule-account-name").value.trim();
       const account = document.getElementById("new-rule-account").value.trim();
       const partnerCode = document.getElementById("new-rule-partner").value.trim();
-      const partnerName = document.getElementById("new-rule-name").value.trim();
+      const partnerName = document.getElementById("new-rule-partner-name").value.trim();
+      const description = document.getElementById("new-rule-description").value.trim();
       const targetBU = document.getElementById("new-rule-bu").value;
       
-      const success = addMappingRule(account, partnerCode, partnerName, targetBU);
+      const success = addMappingRule(category, accountName, account, partnerCode, partnerName, description, targetBU);
       if (success) {
         newMappingForm.reset();
         alert("新規振替ルールをマスタに正常追加しました！");
@@ -1929,7 +1953,6 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Setup Master Config Sub-tabs click listener
   const configTabBtns = document.querySelectorAll(".config-tab-btn");
   configTabBtns.forEach(btn => {
     btn.addEventListener("click", () => {
