@@ -270,109 +270,77 @@
       <!-- 4. MASTER CONFIGURATION VIEW -->
       <section id="section-config" class="view-section">
         
-        <div class="charts-grid">
-          
-          <!-- Left: Allocation Rules configuration -->
-          <div class="card">
-            <div class="chart-header">
-              <span class="chart-title"><i class="fa-solid fa-percent"></i> 「その他/共通費」自動按分（配賦）比率マスタ</span>
+        <!-- Config Section Header Menu Selector -->
+        <div class="config-menu-container card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+              <div class="logo-icon" style="width: 38px; height: 38px; font-size: 1.1rem; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));"><i class="fa-solid fa-sliders"></i></div>
+              <div>
+                <h3 style="font-size: 1rem; margin: 0; color: var(--text-primary); font-weight: 700;">設定対象マスタの選択</h3>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin: 0;">編集・調整を行う管理会計マスタを選択してください</p>
+              </div>
             </div>
             
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-              経理生データに存在する「共通費（その他）」の行を、指定されたビジネスユニットにどのような比率で自動按分するかを定義します。
-            </p>
-            
-            <form id="alloc-rule-form" onsubmit="event.preventDefault(); alert('按分比率マスタを保存しました！次回インポート時より即座に適用されます。');">
-              <div class="form-group">
-                <label class="form-label">対象の取引先コード (生データ上のF列)</label>
-                <input type="text" class="form-control" value="300000594" placeholder="例: 300000594">
-              </div>
-              
-              <div class="form-group">
-                <label class="form-label">按分方法の指定</label>
-                <div class="toggle-container" style="margin-bottom: 0.8rem;">
-                  <button class="toggle-btn active" type="button">複数事業部への比率按分</button>
-                  <button class="toggle-btn" type="button" disabled>特定グループへの全額付け</button>
-                </div>
-              </div>
-              
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                <div>
-                  <label class="form-label">事業部A (株主優待G)</label>
-                  <input type="text" class="form-control" value="50%" placeholder="50%">
-                </div>
-                <div>
-                  <label class="form-label">事業部B (オペレーションG)</label>
-                  <input type="text" class="form-control" value="50%" placeholder="50%">
-                </div>
-              </div>
-              
-              <button class="btn btn-primary" type="submit" style="width: 100%; justify-content: center;">
-                <i class="fa-solid fa-floppy-disk"></i>
-                <span>按分ルールを保存</span>
+            <div class="config-tabs">
+              <button class="config-tab-btn active" data-target="group-transfer">
+                <i class="fa-solid fa-right-from-bracket" style="transform: rotate(90deg);"></i>
+                <span>取引グループ振替設定</span>
               </button>
-            </form>
+              <button class="config-tab-btn" data-target="org-master">
+                <i class="fa-solid fa-sitemap"></i>
+                <span>組織・グループマスタ</span>
+              </button>
+            </div>
           </div>
-          
-          <!-- Right: Mapping definition overview -->
+        </div>
+
+        <!-- 4-1. 取引グループ振替マスタ (Sub-section) -->
+        <div id="config-sub-group-transfer" class="config-sub-section active">
           <div class="card">
             <div class="chart-header">
-              <span class="chart-title"><i class="fa-solid fa-link"></i> 「取引先×科目」領域自動マッピングマスタ</span>
+              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                <span class="chart-title"><i class="fa-solid fa-link" style="color:var(--accent-blue); margin-right:0.4rem;"></i> 取引グループ振替マスタ (仕訳ルール)</span>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">
+                  D列（勘定科目）とF列（取引先/案件）のペアから、管理会計用の担当グループを決定する振替ルール定義マスタです。
+                </span>
+              </div>
             </div>
-            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
-              D列（勘定科目）とF列（取引先/案件）のペアから、管理会計用の領域グループを自動決定するルールです。
-            </p>
             
-            <!-- Dynamic Rule Addition Inline Form (Glassmorphism design) -->
+            <!-- Dynamic Rule Addition Inline Form -->
             <div class="inline-form-card">
-              <h4 style="font-size: 0.8rem; color: var(--text-primary); margin-bottom: 0.5rem;"><i class="fa-solid fa-plus-circle"></i> 新規マッピングルールの追加</h4>
-              <form id="new-mapping-form" style="display: grid; grid-template-columns: 1fr 1.2fr 1.5fr 1.5fr auto; gap: 0.4rem; align-items: end;">
+              <h4 style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 0.8rem;"><i class="fa-solid fa-plus-circle" style="color:var(--accent-blue);"></i> 新規振替ルールの追加</h4>
+              <form id="new-mapping-form" style="display: grid; grid-template-columns: 1fr 1.2fr 2fr 1.5fr auto; gap: 0.6rem; align-items: end;">
                 <div>
-                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">勘定科目</label>
-                  <input type="text" id="new-rule-account" class="form-control" placeholder="例: 5301" required style="padding: 0.4rem 0.5rem; font-size: 0.75rem;">
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">勘定科目</label>
+                  <input type="text" id="new-rule-account" class="form-control" placeholder="例: 5301" required style="padding: 0.5rem; font-size: 0.8rem;">
                 </div>
                 <div>
-                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">取引先コード</label>
-                  <input type="text" id="new-rule-partner" class="form-control" placeholder="例: 100006188" required style="padding: 0.4rem 0.5rem; font-size: 0.75rem;">
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">取引先コード</label>
+                  <input type="text" id="new-rule-partner" class="form-control" placeholder="例: 100006188" required style="padding: 0.5rem; font-size: 0.8rem;">
                 </div>
                 <div>
-                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">摘要・取引先名</label>
-                  <input type="text" id="new-rule-name" class="form-control" placeholder="例: サーバー費" required style="padding: 0.4rem 0.5rem; font-size: 0.75rem;">
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">摘要・取引先名</label>
+                  <input type="text" id="new-rule-name" class="form-control" placeholder="例: サーバー費" required style="padding: 0.5rem; font-size: 0.8rem;">
                 </div>
                 <div>
-                  <label class="form-label" style="font-size: 0.65rem; margin-bottom: 2px;">マッピング先領域</label>
-                  <select id="new-rule-bu" class="dropdown-control" style="width: 100%; padding: 0.35rem 1.5rem 0.35rem 0.5rem; font-size: 0.75rem; background-position: right 0.4rem center;">
-                    <option value="group_ops">オペレーション</option>
-                    <option value="group_prod">プロダクト</option>
-                    <option value="group_sys">システム</option>
-                    <option value="group_bizdev">BizDev</option>
-                    <option value="group_gift">株主優待</option>
-                    <option value="group_pay">報酬支払</option>
-                    <option value="group_point">ポイント</option>
-                    <option value="group_fact">ファクタリング</option>
-                    <option value="group_dg">デジタル＆</option>
-                    <option value="group_corp_hq">管理本部</option>
-                    <option value="group_corp_rc">リスコン</option>
-                    <option value="group_legal">法務</option>
-                    <option value="group_security">セキュリティ</option>
-                    <option value="group_planning">経営企画</option>
-                    <option value="group_hr">HR</option>
-                    <option value="group_secretary">秘書</option>
+                  <label class="form-label" style="font-size: 0.75rem; margin-bottom: 4px;">振替先グループ</label>
+                  <select id="new-rule-bu" class="dropdown-control" style="width: 100%; padding: 0.45rem 2rem 0.45rem 0.65rem; font-size: 0.8rem; height: 35px;">
+                    <!-- Dynamically populated -->
                   </select>
                 </div>
-                <button class="btn btn-primary" type="submit" style="padding: 0.45rem; justify-content: center; width: 32px; height: 28px;"><i class="fa-solid fa-plus"></i></button>
+                <button class="btn btn-primary" type="submit" style="padding: 0.5rem 1rem; justify-content: center; height: 35px;"><i class="fa-solid fa-plus"></i></button>
               </form>
             </div>
             
-            <div style="max-height: 250px; overflow-y: auto; font-size: 0.8rem; font-family: monospace; border: 1px solid var(--border-color); border-radius: 8px;">
+            <div style="max-height: 400px; overflow-y: auto; font-size: 0.85rem; font-family: monospace; border: 1px solid var(--border-color); border-radius: 8px;">
               <table style="width: 100%; border-collapse: collapse; text-align: left;" id="mapping-master-table">
                 <thead style="border-bottom: 1px solid var(--border-color); color: var(--text-secondary); background: rgba(255,255,255,0.02); position: sticky; top: 0; z-index: 10;">
                   <tr>
-                    <th style="padding: 0.5rem 0.75rem;">科目</th>
-                    <th style="padding: 0.5rem 0.75rem;">取引先コード</th>
-                    <th style="padding: 0.5rem 0.75rem;">摘要・取引先名</th>
-                    <th style="padding: 0.5rem 0.75rem;">マッピング先領域</th>
-                    <th style="padding: 0.5rem 0.75rem; text-align: center; width: 50px;">操作</th>
+                    <th style="padding: 0.6rem 0.85rem;">科目</th>
+                    <th style="padding: 0.6rem 0.85rem;">取引先コード</th>
+                    <th style="padding: 0.6rem 0.85rem;">摘要・取引先名</th>
+                    <th style="padding: 0.6rem 0.85rem;">振替先グループ</th>
+                    <th style="padding: 0.6rem 0.85rem; text-align: center; width: 80px;">操作</th>
                   </tr>
                 </thead>
                 <tbody style="color: var(--text-primary);" id="mapping-master-tbody">
@@ -381,11 +349,13 @@
               </table>
             </div>
           </div>
-          
-          <!-- Bottom: Dynamic Organization & Group Management -->
-          <div class="card" style="grid-column: span 2; margin-top: 1.5rem;">
+        </div>
+
+        <!-- 4-2. 組織・グループマスタ (Sub-section) -->
+        <div id="config-sub-org-master" class="config-sub-section">
+          <div class="card">
             <div class="chart-header">
-              <span class="chart-title"><i class="fa-solid fa-sitemap"></i> 「組織・グループ」期初・月次動的管理マスタ</span>
+              <span class="chart-title"><i class="fa-solid fa-sitemap" style="color:var(--accent-purple); margin-right:0.4rem;"></i> 「組織・グループ」期初・月次動的管理マスタ</span>
               <span style="font-size: 0.75rem; color: var(--text-muted);">
                 月次の組織変更、グループの追加、統廃合（削除）、名前変更をリアルタイムに反映します。
               </span>
@@ -441,9 +411,8 @@
               
             </div>
           </div>
-          
         </div>
- 
+
       </section>
 
     </main>
@@ -453,19 +422,19 @@
   <!-- Floating Glass Tooltip for SVG Charts -->
   <div id="chart-tooltip" class="chart-tooltip"></div>
 
-  <!-- Floating Glass Modal for Instant Allocation / Master Addition -->
+  <!-- Floating Glass Modal for Instant Group Transfer / Master Addition -->
   <div id="mapping-modal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <div class="modal-title" style="display:flex; align-items:center; gap:0.5rem; color:var(--color-warning);">
           <i class="fa-solid fa-circle-exclamation"></i>
-          <span>未分類取引の領域割り当て</span>
+          <span>未分類取引のグループ振替設定</span>
         </div>
         <span class="modal-close" id="modal-close-btn">&times;</span>
       </div>
       <div class="modal-body">
         <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6;">
-          現在マスタに登録されていない仕訳が検出されました。この「取引先コード」と「勘定科目」のペアに対し、管理会計上のグループ領域を定義します。登録されたルールは即座にマスタに保存され、今回の仕分け結果へ自動反映されます。
+          現在マスタに登録されていない仕訳レコードが検出されました。この「取引先コード」と「勘定科目」のペアに対し、管理会計上の振替先グループを定義します。登録されたルールは即座に取引グループ振替マスタに保存され、今回の仕分け結果へ自動反映されます。
         </p>
         
         <div class="modal-info-box">
@@ -477,7 +446,7 @@
         
         <form id="modal-mapping-form">
           <div class="form-group">
-            <label class="form-label" style="font-size:0.8rem;">マッピング先領域グループを選択</label>
+            <label class="form-label" style="font-size:0.8rem;">振替先グループを選択</label>
             <select id="modal-bu-select" class="dropdown-control" style="width: 100%; padding: 0.65rem 1rem;">
               <option value="group_ops">オペレーション</option>
               <option value="group_prod">プロダクト</option>
@@ -499,7 +468,7 @@
           </div>
           <button class="btn btn-primary" type="submit" style="width: 100%; justify-content: center; margin-top: 1rem; padding: 0.75rem;">
             <i class="fa-solid fa-floppy-disk"></i>
-            <span>マスタに追加登録して適用</span>
+            <span>マスタに追加登録して振替</span>
           </button>
         </form>
       </div>

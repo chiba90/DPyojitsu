@@ -1130,7 +1130,7 @@ function generateBUGrid() {
 
 
 // ==========================================================================
-// 5. 取引領域マッピングマスタ (動的CRUD & localStorage連動)
+// 5. 取引グループ振替マスタ (動的CRUD & localStorage連動)
 // ==========================================================================
 
 const DEFAULT_MAPPING_RULES = [
@@ -1216,7 +1216,7 @@ function addMappingRule(account, partnerCode, partnerName, targetBU) {
   // Check if exists
   const exists = rules.some(r => r.account === account && r.partnerCode === partnerCode);
   if (exists) {
-    alert("この【勘定科目×取引先コード】のルールは既に登録されています！");
+    alert("この【勘定科目×取引先コード】の振替ルールは既に登録されています！");
     return false;
   }
   
@@ -1902,10 +1902,32 @@ window.addEventListener("DOMContentLoaded", () => {
       const success = addMappingRule(account, partnerCode, partnerName, targetBU);
       if (success) {
         newMappingForm.reset();
-        alert("新規マッピングルールをマスタデータベースに正常追加しました！");
+        alert("新規振替ルールをマスタに正常追加しました！");
       }
     });
   }
+
+  // Setup Master Config Sub-tabs click listener
+  const configTabBtns = document.querySelectorAll(".config-tab-btn");
+  configTabBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = btn.getAttribute("data-target");
+      
+      // Toggle active class on tab buttons
+      configTabBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      
+      // Toggle active class on sub sections
+      document.querySelectorAll(".config-sub-section").forEach(sec => {
+        sec.classList.remove("active");
+      });
+      
+      const activeSubSec = document.getElementById(`config-sub-${target}`);
+      if (activeSubSec) {
+        activeSubSec.classList.add("active");
+      }
+    });
+  });
   
   // Setup Modal bindings
   const modalClose = document.getElementById("modal-close-btn");
