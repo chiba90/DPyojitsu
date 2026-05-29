@@ -4,90 +4,267 @@
 
 const db = realDB;
 
-// Dynamic Group Migration & 16 Period-Start Groups Initialization Engine
-(function() {
-  const buIdMap = {
-    "bu_gov": "group_bizdev",
-    "bu_gift": "group_gift",
-    "bu_pay": "group_pay",
-    "bu_point": "group_point",
-    "bu_fact": "group_fact",
-    "bu_dg": "group_dg",
-    "bu_ops": "group_ops",
-    "bu_dg_gift": "group_dg_gift",
-    "bu_dg_wallet": "group_dg_wallet",
-    "bu_corp_hq": "group_corp_hq",
-    "bu_corp_rc": "group_corp_rc",
-    "bu_corp_pres": "group_corp_pres"
+// ==========================================================================
+// 組織・グループ 動的管理マスタ (CRUD & LocalStorage ＆ リアルタイムDB同期エンジン)
+// ==========================================================================
+
+const DEFAULT_GROUPS = [
+  { id: "group_bizdev", name: "BizDev", parent: "business_unit" },
+  { id: "group_gift", name: "株主優待", parent: "business_unit" },
+  { id: "group_pay", name: "報酬支払", parent: "business_unit" },
+  { id: "group_point", name: "ポイント", parent: "business_unit" },
+  { id: "group_fact", name: "ファクタリング", parent: "business_unit" },
+  { id: "group_dg", name: "デジタル＆", parent: "business_unit" },
+  { id: "group_prod", name: "プロダクト", parent: "business_unit" },
+  { id: "group_sys", name: "システム", parent: "business_unit" },
+  { id: "group_ops", name: "オペレーション", parent: "platform_unit" },
+  { id: "group_dg_gift", name: "デジタルギフト", parent: "platform_unit" },
+  { id: "group_dg_wallet", name: "デジタルウォレット", parent: "platform_unit" },
+  { id: "group_corp_hq", name: "管理本部", parent: "corporate_unit" },
+  { id: "group_corp_rc", name: "リスコン", parent: "corporate_unit" },
+  { id: "group_legal", name: "法務", parent: "corporate_unit" },
+  { id: "group_security", name: "セキュリティ", parent: "corporate_unit" },
+  { id: "group_planning", name: "経営企画", parent: "corporate_unit" },
+  { id: "group_hr", name: "HR", parent: "corporate_unit" },
+  { id: "group_secretary", name: "秘書", parent: "corporate_unit" },
+  { id: "group_corp_pres", name: "社長室", parent: "corporate_unit" }
+];
+
+const buIdMap = {
+  "bu_gov": "group_bizdev",
+  "bu_gift": "group_gift",
+  "bu_pay": "group_pay",
+  "bu_point": "group_point",
+  "bu_fact": "group_fact",
+  "bu_dg": "group_dg",
+  "bu_ops": "group_ops",
+  "bu_dg_gift": "group_dg_gift",
+  "bu_dg_wallet": "group_dg_wallet",
+  "bu_corp_hq": "group_corp_hq",
+  "bu_corp_rc": "group_corp_rc",
+  "bu_corp_pres": "group_corp_pres"
+};
+
+function loadGroups() {
+  const local = localStorage.getItem("dp_groups");
+  if (local) {
+    return JSON.parse(local);
+  }
+  localStorage.setItem("dp_groups", JSON.stringify(DEFAULT_GROUPS));
+  return DEFAULT_GROUPS;
+}
+
+function saveGroups(groups) {
+  localStorage.setItem("dp_groups", JSON.stringify(groups));
+}
+
+// Synchronize all select tags in UI with the latest group list
+function syncDropdowns(groups) {
+  const buSelector = document.getElementById("bu-selector");
+  const newRuleSelect = document.getElementById("new-rule-bu");
+  const modalSelect = document.getElementById("modal-bu-select");
+  
+  const parentTypeLabel = {
+    "business_unit": "ビジネス",
+    "platform_unit": "PF",
+    "corporate_unit": "コーポレート"
+  };
+
+  const populateSelect = (selectEl, includeAll = false) => {
+    if (!selectEl) return;
+    const currentVal = selectEl.value;
+    selectEl.innerHTML = "";
+    
+    if (includeAll) {
+      selectEl.innerHTML += `<option value="all">全社合計 (フィンテック)</option>`;
+    }
+    
+    groups.forEach(g => {
+      selectEl.innerHTML += `<option value="${g.id}">${g.name} (${parentTypeLabel[g.parent] || g.parent})</option>`;
+    });
+    
+    // Restore value if still exists
+    selectEl.value = currentVal;
+    if (!selectEl.value && selectEl.options.length > 0) {
+      selectEl.selectedIndex = 0;
+    }
+  };
+
+  populateSelect(buSelector, true);
+  populateSelect(newRuleSelect, false);
+  populateSelect(modalSelect, false);
+}
+
+// Main logic to sync realDB.businessUnits with user-defined groups dynamically
+function syncGroupsAndDatabase() {
+  const groups = loadGroups();
+  
+  if (!db || !db.businessUnits) return;
+  
+  // 1. Initial ID translation for legacy Excel-generated DB items
+  db.businessUnits.forEach(bu => {
+    if (buIdMap[bu.id]) {
+      bu.id = buIdMap[bu.id];
+    }
+  });
+  
+  // 2. Synchronize names and keep only active groups in db.businessUnits
+  const syncedUnits = [];
+  
+  groups.forEach(g => {
+    // Find if already exists in db
+    let bu = db.businessUnits.find(b => b.id === g.id);
+    if (bu) {
+      bu.name = g.name; // Update name dynamically (Rename support!)
+      bu.parent = g.parent;
+    } else {
+      // Create new unit with 0 values dynamically (Add support!)
+      const monthsCount = db.months ? db.months.length : 12;
+      const emptyMetrics = {};
+      const keys = ["volume", "revenue", "cost", "gp", "sga", "op", "fin_rev", "fin_cost", "net_income", "headcount", "productivity"];
+      keys.forEach(k => {
+        emptyMetrics[k] = {
+          budget: Array(monthsCount).fill(0),
+          actual_last_week: Array(monthsCount).fill(0),
+          actual_this_week: Array(monthsCount).fill(0)
+        };
+      });
+      bu = {
+        id: g.id,
+        name: g.name,
+        parent: g.parent,
+        metrics: emptyMetrics
+      };
+    }
+    syncedUnits.push(bu);
+  });
+  
+  db.businessUnits = syncedUnits;
+  
+  // 3. Update dropdown UI options
+  syncDropdowns(groups);
+}
+
+function renderGroupMaster() {
+  const tbody = document.getElementById("group-master-tbody");
+  if (!tbody) return;
+  
+  const groups = loadGroups();
+  tbody.innerHTML = "";
+  
+  const parentLabels = {
+    "business_unit": "ビジネスユニット",
+    "platform_unit": "プラットフォームユニット",
+    "corporate_unit": "コーポレートユニット"
   };
   
-  const buNameMap = {
-    "group_ops": "オペレーション",
-    "group_prod": "プロダクト",
-    "group_sys": "システム",
-    "group_bizdev": "BizDev",
-    "group_gift": "株主優待",
-    "group_pay": "報酬支払",
-    "group_point": "ポイント",
-    "group_fact": "ファクタリング",
-    "group_dg": "デジタル＆",
-    "group_corp_hq": "管理本部",
-    "group_corp_rc": "リスコン",
-    "group_legal": "法務",
-    "group_security": "セキュリティ",
-    "group_planning": "経営企画",
-    "group_hr": "HR",
-    "group_secretary": "秘書",
-    "group_dg_gift": "デジタルギフト",
-    "group_dg_wallet": "デジタルウォレット",
-    "group_corp_pres": "社長室"
-  };
-
-  // Convert old IDs to new 16 period-start IDs in memory
-  if (db && db.businessUnits) {
-    db.businessUnits.forEach(bu => {
-      if (buIdMap[bu.id]) {
-        bu.id = buIdMap[bu.id];
-      }
-      if (buNameMap[bu.id]) {
-        bu.name = buNameMap[bu.id];
+  groups.forEach(g => {
+    tbody.innerHTML += `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.03);">
+        <td style="padding: 0.5rem 0.75rem; font-family: monospace; color: var(--text-muted);">${g.id}</td>
+        <td style="padding: 0.5rem 0.75rem; font-weight: 600; cursor: pointer; color: var(--text-primary);" class="editable-group-name" data-id="${g.id}">
+          <i class="fa-solid fa-pen" style="font-size:0.7rem; color:var(--text-muted); margin-right:0.4rem;"></i>${g.name}
+        </td>
+        <td style="padding: 0.5rem 0.75rem; color: var(--text-secondary);">${parentLabels[g.parent] || g.parent}</td>
+        <td style="padding: 0.5rem 0.75rem; text-align: center;">
+          <button class="btn-delete-row btn-delete-group" data-id="${g.id}"><i class="fa-solid fa-trash-can"></i></button>
+        </td>
+      </tr>
+    `;
+  });
+  
+  // Bind inline rename events
+  tbody.querySelectorAll(".editable-group-name").forEach(td => {
+    td.addEventListener("click", () => {
+      const id = td.getAttribute("data-id");
+      const name = td.innerText.trim();
+      const newName = prompt(`グループ「${name}」の新しい表示名を入力してください：`, name);
+      if (newName && newName.trim() !== name) {
+        renameGroup(id, newName.trim());
       }
     });
-
-    // Automatically create 7 newly added period-start groups with 0 budgets if not present
-    const newGroups = [
-      { id: "group_prod", parent: "business_unit" },
-      { id: "group_sys", parent: "business_unit" },
-      { id: "group_legal", parent: "corporate_unit" },
-      { id: "group_security", parent: "corporate_unit" },
-      { id: "group_planning", parent: "corporate_unit" },
-      { id: "group_hr", parent: "corporate_unit" },
-      { id: "group_secretary", parent: "corporate_unit" }
-    ];
-
-    newGroups.forEach(g => {
-      const exists = db.businessUnits.some(bu => bu.id === g.id);
-      if (!exists) {
-        const monthsCount = db.months ? db.months.length : 12;
-        const emptyMetrics = {};
-        const keys = ["volume", "revenue", "cost", "gp", "sga", "op", "fin_rev", "fin_cost", "net_income", "headcount", "productivity"];
-        keys.forEach(k => {
-          emptyMetrics[k] = {
-            budget: Array(monthsCount).fill(0),
-            actual_last_week: Array(monthsCount).fill(0),
-            actual_this_week: Array(monthsCount).fill(0)
-          };
-        });
-        db.businessUnits.push({
-          id: g.id,
-          name: buNameMap[g.id],
-          parent: g.parent,
-          metrics: emptyMetrics
-        });
+  });
+  
+  // Bind delete events
+  tbody.querySelectorAll(".btn-delete-group").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-id");
+      const name = groups.find(g => g.id === id).name;
+      if (confirm(`本当にグループ「${name}」を統廃合（削除）しますか？\n登録済みのマッピングルールや実績値はリセットまたは未分類になります。`)) {
+        deleteGroup(id);
       }
     });
+  });
+}
+
+function addGroup(name, parent) {
+  const groups = loadGroups();
+  const id = "group_" + Date.now();
+  
+  // Avoid duplicate names
+  if (groups.some(g => g.name === name)) {
+    alert("同名のグループが既に存在します！");
+    return false;
   }
-})();
+  
+  groups.push({ id, name, parent });
+  saveGroups(groups);
+  syncGroupsAndDatabase();
+  renderGroupMaster();
+  
+  // Refresh view if in bu_grid
+  if (state.currentView === "bu_grid") {
+    generateBUGrid();
+  }
+  return true;
+}
+
+function renameGroup(id, newName) {
+  const groups = loadGroups();
+  const g = groups.find(x => x.id === id);
+  if (g) {
+    g.name = newName;
+    saveGroups(groups);
+    syncGroupsAndDatabase();
+    renderGroupMaster();
+    
+    // Refresh current screens
+    if (state.currentView === "bu_grid") generateBUGrid();
+    if (state.currentView === "dashboard") {
+      drawDashboardChart();
+      drawProductivityChart();
+      updateKPICards();
+    }
+  }
+}
+
+function deleteGroup(id) {
+  let groups = loadGroups();
+  groups = groups.filter(g => g.id !== id);
+  saveGroups(groups);
+  
+  // Self-heal: Clean up any mapping rules pointing to deleted group
+  const localRules = localStorage.getItem("dp_mapping_rules");
+  if (localRules) {
+    let rules = JSON.parse(localRules);
+    rules = rules.filter(r => r.targetBU !== id);
+    localStorage.setItem("dp_mapping_rules", JSON.stringify(rules));
+  }
+  
+  syncGroupsAndDatabase();
+  renderGroupMaster();
+  
+  // Refresh views
+  if (state.currentView === "bu_grid") generateBUGrid();
+  if (state.currentView === "dashboard") {
+    drawDashboardChart();
+    drawProductivityChart();
+    updateKPICards();
+  }
+}
+
+// Initial Dynamic Synchronization on startup
+syncGroupsAndDatabase();
 
 // State Manager
 let state = {
@@ -743,40 +920,20 @@ function generateBUGrid() {
       <tbody>
   `;
   
+  // Dynamically compile active BU lists and Full lists directly from the synchronized database
   const buItems = [
-    { id: "all", name: "全社合計" },
-    { id: "group_bizdev", name: "BizDev" },
-    { id: "group_gift", name: "株主優待" },
-    { id: "group_pay", name: "報酬支払" },
-    { id: "group_point", name: "ポイント" },
-    { id: "group_fact", name: "ファクタリング" },
-    { id: "group_dg", name: "デジタル＆" },
-    { id: "group_prod", name: "プロダクト" },
-    { id: "group_sys", name: "システム" }
+    { id: "all", name: "全社合計" }
   ];
-
   const fullItems = [
-    { id: "all", name: "全社合計" },
-    { id: "group_bizdev", name: "BizDev" },
-    { id: "group_gift", name: "株主優待" },
-    { id: "group_pay", name: "報酬支払" },
-    { id: "group_point", name: "ポイント" },
-    { id: "group_fact", name: "ファクタリング" },
-    { id: "group_dg", name: "デジタル＆" },
-    { id: "group_prod", name: "プロダクト" },
-    { id: "group_sys", name: "システム" },
-    { id: "group_ops", name: "オペレーション" },
-    { id: "group_dg_gift", name: "デジタルギフト" },
-    { id: "group_dg_wallet", name: "デジタルウォレット" },
-    { id: "group_corp_hq", name: "管理本部" },
-    { id: "group_corp_rc", name: "リスコン" },
-    { id: "group_legal", name: "法務" },
-    { id: "group_security", name: "セキュリティ" },
-    { id: "group_planning", name: "経営企画" },
-    { id: "group_hr", name: "HR" },
-    { id: "group_secretary", name: "秘書" },
-    { id: "group_corp_pres", name: "社長室" }
+    { id: "all", name: "全社合計" }
   ];
+  
+  db.businessUnits.forEach(bu => {
+    if (bu.parent === "business_unit") {
+      buItems.push({ id: bu.id, name: bu.name });
+    }
+    fullItems.push({ id: bu.id, name: bu.name });
+  });
 
   const categories = [
     { name: "流通総額", key: "volume", items: buItems },
@@ -1377,30 +1534,18 @@ function exportBUGridToCSV() {
   csvContent += "指標 / 部門・グループ,区分,通期,10月,11月,12月,1月,2月,3月,4月,5月,6月,7月,8月,9月,1Q,2Q,3Q,4Q\n";
   
   const buItems = [
-    { id: "all", name: "全社合計" },
-    { id: "bu_gov", name: "BizDevG(給付金)" },
-    { id: "bu_gift", name: "株主優待G" },
-    { id: "bu_pay", name: "報酬支払G" },
-    { id: "bu_point", name: "ポイントG" },
-    { id: "bu_fact", name: "ファクタリングG" },
-    { id: "bu_dg", name: "デジタル＆" }
+    { id: "all", name: "全社合計" }
+  ];
+  const fullItems = [
+    { id: "all", name: "全社合計" }
   ];
 
-  const fullItems = [
-    { id: "all", name: "全社合計" },
-    { id: "bu_gov", name: "BizDevG(給付金)" },
-    { id: "bu_gift", name: "株主優待G" },
-    { id: "bu_pay", name: "報酬支払G" },
-    { id: "bu_point", name: "ポイントG" },
-    { id: "bu_fact", name: "ファクタリングG" },
-    { id: "bu_dg", name: "デジタル＆" },
-    { id: "bu_ops", name: "オペレーションG" },
-    { id: "bu_dg_gift", name: "デジタルギフト" },
-    { id: "bu_dg_wallet", name: "デジタルウォレット" },
-    { id: "bu_corp_hq", name: "管理本部" },
-    { id: "bu_corp_rc", name: "リスコン" },
-    { id: "bu_corp_pres", name: "社長室" }
-  ];
+  db.businessUnits.forEach(bu => {
+    if (bu.parent === "business_unit") {
+      buItems.push({ id: bu.id, name: bu.name });
+    }
+    fullItems.push({ id: bu.id, name: bu.name });
+  });
 
   const categories = [
     { name: "流通総額", key: "volume", items: buItems },
@@ -1592,6 +1737,7 @@ function switchView(viewName) {
     generateBUGrid();
   } else if (viewName === "config") {
     renderMappingMaster();
+    renderGroupMaster();
   }
 }
 
@@ -1776,6 +1922,22 @@ window.addEventListener("DOMContentLoaded", () => {
   const csvBtn = document.getElementById("csv-export-btn");
   if (csvBtn) {
     csvBtn.addEventListener("click", exportBUGridToCSV);
+  }
+
+  // Setup Dynamic Group Master CRUD submission
+  const newGroupForm = document.getElementById("new-group-form");
+  if (newGroupForm) {
+    newGroupForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = document.getElementById("new-group-name").value.trim();
+      const parent = document.getElementById("new-group-parent").value;
+      
+      const success = addGroup(name, parent);
+      if (success) {
+        newGroupForm.reset();
+        alert("新規グループをマスタデータベースに正常追加しました！");
+      }
+    });
   }
   
   // Initialize Charts and Grid
