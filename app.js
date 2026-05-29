@@ -79,9 +79,21 @@ function syncDropdowns(groups) {
       selectEl.innerHTML += `<option value="all">全社合計 (フィンテック)</option>`;
     }
     
+    // 1. Add Parent Units Optgroup
+    let parentGroupHtml = `<optgroup label="💎 親ユニット（全体共通）">`;
+    parentGroupHtml += `<option value="unit_business_unit">ビジネスユニット全体 (共通)</option>`;
+    parentGroupHtml += `<option value="unit_platform_unit">プラットフォームユニット全体 (共通)</option>`;
+    parentGroupHtml += `<option value="unit_corporate_unit">コーポレートユニット全体 (共通)</option>`;
+    parentGroupHtml += `</optgroup>`;
+    selectEl.innerHTML += parentGroupHtml;
+    
+    // 2. Add Individual Groups Optgroup
+    let indGroupHtml = `<optgroup label="📂 個別グループ">`;
     groups.forEach(g => {
-      selectEl.innerHTML += `<option value="${g.id}">${g.name} (${parentTypeLabel[g.parent] || g.parent})</option>`;
+      indGroupHtml += `<option value="${g.id}">${g.name} (${parentTypeLabel[g.parent] || g.parent})</option>`;
     });
+    indGroupHtml += `</optgroup>`;
+    selectEl.innerHTML += indGroupHtml;
     
     // Restore value if still exists
     selectEl.value = currentVal;
@@ -95,7 +107,7 @@ function syncDropdowns(groups) {
   populateSelect(modalSelect, false);
 }
 
-// Main logic to sync realDB.businessUnits with user-defined groups dynamically
+// Main logic to sync realDB.businessUnits with user-defined groups dynamically (including virtual parent unit BUs)
 function syncGroupsAndDatabase() {
   const groups = loadGroups();
   
@@ -108,10 +120,19 @@ function syncGroupsAndDatabase() {
     }
   });
   
-  // 2. Synchronize names and keep only active groups in db.businessUnits
+  // 2. Compile Virtual Parent Units & Individual user Groups
+  const virtualUnits = [
+    { id: "unit_business_unit", name: "ビジネスユニット全体 (共通)", parent: "business_unit" },
+    { id: "unit_platform_unit", name: "プラットフォームユニット全体 (共通)", parent: "platform_unit" },
+    { id: "unit_corporate_unit", name: "コーポレートユニット全体 (共通)", parent: "corporate_unit" }
+  ];
+  
+  const allTargetSegments = [...virtualUnits, ...groups];
+  
+  // 3. Synchronize names and keep only active groups/virtual units in db.businessUnits
   const syncedUnits = [];
   
-  groups.forEach(g => {
+  allTargetSegments.forEach(g => {
     // Find if already exists in db
     let bu = db.businessUnits.find(b => b.id === g.id);
     if (bu) {
@@ -141,7 +162,7 @@ function syncGroupsAndDatabase() {
   
   db.businessUnits = syncedUnits;
   
-  // 3. Update dropdown UI options
+  // 4. Update dropdown UI options
   syncDropdowns(groups);
 }
 
@@ -1185,6 +1206,9 @@ function renderMappingMaster() {
   tbody.innerHTML = "";
   
   const buNameMap = {
+    "unit_business_unit": "ビジネスユニット全体 (共通)",
+    "unit_platform_unit": "プラットフォームユニット全体 (共通)",
+    "unit_corporate_unit": "コーポレートユニット全体 (共通)",
     "group_ops": "オペレーション",
     "group_prod": "プロダクト",
     "group_sys": "システム",
